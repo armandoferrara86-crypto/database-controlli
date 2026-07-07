@@ -1,0 +1,2666 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro Controlli Commerciali</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0f1117;color:#e8e6df;font-family:'DM Sans',system-ui,sans-serif}
+    input,select,textarea,button{font-family:inherit}
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:#0f1117}
+    ::-webkit-scrollbar-thumb{background:#2a3049;border-radius:3px}
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(0.6);cursor:pointer}
+
+    /* ── RESPONSIVE MOBILE ── */
+    .mobile-only { display: none !important; }
+    .desktop-only { display: flex !important; }
+
+    @media (max-width: 768px) {
+      .mobile-only  { display: flex !important; }
+      .desktop-only { display: none !important; }
+
+      /* Header compatto */
+      .header-neon-badge { font-size: 8px !important; padding: 2px 8px !important; }
+      .header-title-row span { font-size: 20px !important; }
+      .header-chips { display: none !important; }
+
+      /* Stats: 2 colonne invece di 4 */
+      .stats-grid { grid-template-columns: repeat(2,1fr) !important; padding: 12px 14px !important; gap: 8px !important; }
+
+      /* Toolbar: stack verticale */
+      .toolbar-wrap { padding: 0 14px 10px !important; flex-direction: column !important; align-items: stretch !important; }
+      .toolbar-wrap input, .toolbar-wrap select { width: 100% !important; }
+      .toolbar-main-btns { margin-left: 0 !important; justify-content: stretch !important; }
+      .toolbar-main-btns button { flex: 1 !important; }
+
+      /* Tag bar: scroll orizzontale */
+      .tag-bar { padding: 0 14px 10px !important; }
+      .tag-bar > div { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 4px !important; }
+
+      /* Lista: card invece di tabella */
+      .lista-wrap { padding: 0 14px 32px !important; overflow-x: visible !important; }
+      .desktop-table { display: none !important; }
+      .mobile-cards { display: flex !important; flex-direction: column; gap: 10px; }
+
+      /* Schede: 1 colonna */
+      .schede-grid { grid-template-columns: 1fr !important; padding: 0 14px 32px !important; }
+
+      /* Statistiche: 1 colonna */
+      .stats-view-wrap { padding: 0 14px 32px !important; }
+      .stats-kpi-grid { grid-template-columns: repeat(2,1fr) !important; }
+      .stats-two-col  { grid-template-columns: 1fr !important; }
+      .stats-three-col{ grid-template-columns: 1fr !important; }
+      .stats-sanzione { flex-direction: column !important; gap: 8px !important; }
+      .stats-monthly  { overflow-x: auto !important; }
+
+      /* Modali: full screen */
+      .overlay-modal { max-width: 100% !important; margin: 0 !important; border-radius: 12px 12px 0 0 !important; position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; max-height: 92vh !important; overflow-y: auto !important; }
+      .overlay-wrap { align-items: flex-end !important; padding: 0 !important; }
+    }
+    @media print {
+      body{background:#fff!important;color:#000!important;font-family:Arial,sans-serif;font-size:11pt}
+      .no-print{display:none!important}
+      .print-only{display:block!important}
+      .pdf-header{border-bottom:3px solid #1a3a6e;padding-bottom:12px;margin-bottom:8px}
+      .pdf-header h1{font-size:18pt;color:#1a3a6e;margin-bottom:4px}
+      .pdf-header p{font-size:10pt;color:#555}
+      .pdf-section{margin-bottom:14px}
+      .pdf-section-title{font-size:9pt;text-transform:uppercase;letter-spacing:.08em;color:#1a3a6e;font-weight:bold;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:8px}
+      .pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:8px}
+      .pdf-field label{font-size:8pt;color:#777;display:block}
+      .pdf-field span{font-size:10pt;color:#000}
+      .pdf-tags{display:flex;flex-wrap:wrap;gap:4px}
+      .pdf-tag{background:#f0f0f0;border:1px solid #ccc;border-radius:4px;padding:2px 6px;font-size:9pt}
+      .pdf-tag.red{background:#fde8e8;border-color:#e05252;color:#8c1a1a}
+      .pdf-tag.blue{background:#e8f0fe;border-color:#3a6fa8;color:#1a3a6e}
+      .pdf-tag.gold{background:#fef9e7;border-color:#c9a84c;color:#7a5c00}
+      .pdf-intervento{border:1px solid #ccc;border-radius:6px;padding:12px;margin-bottom:12px;page-break-inside:avoid}
+      .pdf-intervento-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee}
+      .pdf-intervento-num{font-size:13pt;font-weight:bold;color:#1a3a6e}
+      .pdf-prov{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9pt;font-weight:bold}
+      .pdf-prov.denuncia{background:#fde8e8;color:#8c1a1a}
+      .pdf-prov.segnalazione{background:#fef9e7;color:#7a5c00}
+      .pdf-prov.diffida{background:#e8f0fe;color:#1a3a6e}
+      .pdf-footer{border-top:1px solid #ccc;padding-top:8px;margin-top:20px;font-size:8pt;color:#777;display:flex;justify-content:space-between}
+    }
+    .print-only{display:none}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<div id="pdf-container" class="print-only" style="padding:24px"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const PROVVEDIMENTI = ["Denuncia","Segnalazione uffici","Diffida","Verbalizzato","Nessuno - Regolare","Nessuno - Cessazione","Altro"];
+const TARIFFARIO_KEY = "pm-tariffario";
+
+// Categorie semantiche per la ricerca per tag
+// Ogni categoria ha un elenco di parole chiave — basta che UNA sia presente nel testo
+const CATEGORIE_TAG = [
+  { id:"scia_somm",   label:"SCIA Somministrazione", color:"#7eb8f7", bg:"#1a2640",
+    keywords:["scia somministrazione","scia unica","somministrazione","scia som"] },
+  { id:"scia_vic",    label:"SCIA Vicinato",          color:"#7eb8f7", bg:"#1a2640",
+    keywords:["scia vicinato","vicinato alimentare","vicinato non alimentare","vicinato"] },
+  { id:"scia_san",    label:"SCIA Sanitaria",          color:"#52b788", bg:"#1a3d2e",
+    keywords:["scia sanitaria","sanitaria","igiene","haccp","aliment"] },
+  { id:"acustico",    label:"Impatto Acustico",         color:"#b07af7", bg:"#2a1a40",
+    keywords:["acustic","rumor","musica","impatto acustico","sonoro"] },
+  { id:"suolo",       label:"Suolo Pubblico / OSP",     color:"#f7a052", bg:"#3a2010",
+    keywords:["suolo pubblico","osp","occupazione suolo","dehors","soprassuolo"] },
+  { id:"insegne",     label:"Insegne",                  color:"#c9a84c", bg:"#3a2e0e",
+    keywords:["insegn"] },
+  { id:"alcol",       label:"Vendita Alcolici",          color:"#e05252", bg:"#3a1212",
+    keywords:["alcol","alcolici","vendita alcol","somministrazione alcol"] },
+  { id:"rpsu",        label:"R.P.S.U.",                  color:"#f7a052", bg:"#3a2010",
+    keywords:["rpsu","r.p.s.u","regolamento polizia"] },
+  { id:"diffida",     label:"Con Diffida",               color:"#7eb8f7", bg:"#1a2640",
+    keywords:[] /* filtra per provvedimento */ , isProv:"Diffida" },
+  { id:"denuncia",    label:"Con Denuncia",              color:"#e05252", bg:"#3a1212",
+    keywords:[], isProv:"Denuncia" },
+  { id:"verbalizzato",label:"Verbalizzato",              color:"#b07af7", bg:"#2a1a40",
+    keywords:[], isProv:"Verbalizzato" },
+];
+
+// Funzione che controlla se un record appartiene a una categoria
+function recordInCategoria(r, cat) {
+  if(cat.isProv) return (r.provvedimento||"").toLowerCase() === cat.isProv.toLowerCase();
+  const tuttoTesto = [
+    ...(r.violazioniRiscontrate||[]),
+    ...(r.motivoControllo||[]),
+    ...(r.titoliAutorizzativi||[]),
+    r.note||"", r.nomeEsercizio||"", r.tipo||""
+  ].join(" ").toLowerCase();
+  return cat.keywords.some(kw => tuttoTesto.includes(kw.toLowerCase()));
+}
+const DEFAULT_TARIFFARIO = [
+  {id:1, voce:"SCIA somministrazione mancante",  importo:5000},
+  {id:2, voce:"SCIA vicinato mancante",           importo:5000},
+  {id:3, voce:"SCIA sanitaria mancante",          importo:3000},
+  {id:4, voce:"Impatto acustico mancante",        importo:1000},
+  {id:5, voce:"Violazione O.S.",                  importo:4000},
+  {id:6, voce:"Occupazione suolo pubblico",       importo:173},
+  {id:7, voce:"Violazione R.P.S.U.",              importo:250},
+  {id:8, voce:"Soprassuolo",                      importo:173},
+];
+const fmtEuro = n => new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(n||0);
+const CFG_KEY = "pm-firebase-config";
+const OP_KEY  = "pm-operatore";
+const COLL      = "controlli";
+const COLL_OPS  = "operatori_autorizzati";
+const COLL_LOG  = "activity_log";
+const ADMIN_PIN = "pm2026"; // PIN per accedere alla gestione operatori
+
+
+// ─── REGOLE REPORT RA (mappatura registro → voci report mensile) ─────────────
+// Ogni record può contare in PIÙ voci contemporaneamente.
+// match: (testo completo del record) → true se il controllo conta in questa voce
+// Le violazioni contano nella voce se la singola violazione matcha vKeywords (o keywords se vKeywords assente)
+const REGOLE_RA = [
+  { id:"sede_fissa",   voce:"Commercio in sede fissa: TOTALE controlli - violazioni",
+    keywords:["vicinato","sede fissa","commercio al dettaglio","negozio"] },
+  { id:"vicinato",     voce:"Legge sul commercio - Vicinato",
+    keywords:["vicinato"] },
+  { id:"pubb_esercizi",voce:"Pubblici esercizi: TOTALE controlli - violazioni",
+    keywords:["somministrazione","bar","ristorante","pizzeria","pub ","paninoteca","pasticceria","caffè","caffe"] },
+  { id:"sanitarie",    voce:"Leggi Sanitarie",
+    keywords:["sanitar","aliment","igien","haccp","vicinato aliment","somministrazione"] },
+  { id:"scia_san",     voce:"S.C.I.A. Sanitaria o Mancata voltura",
+    keywords:["scia sanitaria","sanitaria"] },
+  { id:"no_scia_somm", voce:"Apertura esercizio somministrazione in assenza di S.C.I.A.",
+    keywords:["scia somministrazione","assenza scia","no scia somm","senza scia somm"] },
+  { id:"leggi_reg",    voce:"Altre leggi regionali (L.R. 7/2020 ecc.)",
+    keywords:["vicinato","somministrazione","l.r.","legge regionale","lr 7","7/2020"] },
+  { id:"bb_lr5",       voce:"Controlli B&B e attività ricettive L.R. 5/2001",
+    keywords:["b&b","bed","ricettiva","extralberghier","casa vacanz","affittacamere","locazione turistica"],
+    matchTipoAttivita:"Attività Ricettiva Extralberghiera" },
+  { id:"sorvegliab",   voce:"Sorvegliabilità pubblici esercizi",
+    keywords:["sorvegliabil"] },
+  { id:"barbieri",     voce:"Barbieri e parrucchieri",
+    keywords:["barbier","parrucchier","estetist","acconciator"] },
+  { id:"dehors",       voce:"Controlli dehors / occupazione spazi esterni",
+    keywords:["dehors","osp","occupazione suolo","suolo pubblico","tavolini"] },
+  { id:"acustico",     voce:"Inquinamento acustico",
+    keywords:["acustic","rumor","musica"] },
+  { id:"tulps",        voce:"T.U.L.P.S.: TOTALE controlli - violazioni",
+    keywords:["tulps","t.u.l.p.s","pubblica sicurezza","licenza ps"] },
+  { id:"etichett",     voce:"Etichettatura prodotti alimentari",
+    keywords:["etichett"] },
+  { id:"provenienza",  voce:"Indicatori di provenienza prodotti alimentari",
+    keywords:["provenienza","tracciabil","origine prodott"] },
+  { id:"prezzi",       voce:"Pubblicità dei prezzi - art. 38 L.R. 7/2020",
+    keywords:["pubblicità dei prezzi","pubblicita dei prezzi","cartellino prezz","esposizione prezz"] },
+  { id:"artigianato",  voce:"Artigianato",
+    keywords:["artigian"] },
+  { id:"alcol",        voce:"Vendita bevande alcoliche fuori orario",
+    keywords:["alcol"] },
+];
+
+// Testo completo di un record per il matching RA
+function testoRecordRA(r){
+  const ags = Array.isArray(r.agentiOp)?r.agentiOp.join(" "):(r.agentiOp||"");
+  return [
+    r.tipo||"", r.tipoAttivita||"", r.nomeEsercizio||"",
+    ...(r.motivoControllo||[]), ...(r.violazioniRiscontrate||[]),
+    ...(r.titoliAutorizzativi||[]), r.note||"", ags
+  ].join(" ").toLowerCase();
+}
+
+// Il record conta come CONTROLLO nella voce?
+function recordInVoceRA(r, regola){
+  if(regola.matchTipoAttivita && r.tipoAttivita===regola.matchTipoAttivita) return true;
+  const testo = testoRecordRA(r);
+  return regola.keywords.some(kw => testo.includes(kw));
+}
+
+// Quante VIOLAZIONI del record contano nella voce?
+function violazioniInVoceRA(r, regola){
+  const viols = r.violazioniRiscontrate||[];
+  if(!viols.length) return 0;
+  // Se il record non appartiene alla voce, nessuna violazione conta
+  if(!recordInVoceRA(r, regola)) return 0;
+  const kws = regola.vKeywords || regola.keywords;
+  const matched = viols.filter(v => kws.some(kw => v.toLowerCase().includes(kw)));
+  // Se nessuna violazione matcha specificamente ma il record è nella voce con violazioni generiche,
+  // per le voci "totali" (sede fissa, pubblici esercizi, leggi regionali) contiamo tutte le violazioni
+  if(matched.length===0 && ["sede_fissa","pubb_esercizi","leggi_reg","bb_lr5","vicinato"].includes(regola.id)) return viols.length;
+  return matched.length;
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+const fmt   = iso => { if(!iso) return "—"; const p=iso.split("-"); if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`; const d=new Date(iso); return isNaN(d)?iso:`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`; };
+const fmtTs = ts  => { if(!ts) return "—"; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
+const toLocalISO = d => { const dd=String(d.getDate()).padStart(2,"0"); const mm=String(d.getMonth()+1).padStart(2,"0"); return `${d.getFullYear()}-${mm}-${dd}`; };
+
+// Normalizza qualsiasi formato data in YYYY-MM-DD (formato interno standard)
+// Gestisce: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, YYYY/MM/DD, D/M/YY, timestamp
+function normalizzaData(raw){
+  if(!raw) return null;
+  const s = String(raw).trim();
+  if(!s) return null;
+
+  // Già nel formato corretto YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // YYYY/MM/DD o YYYY.MM.DD
+  let m = s.match(/^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})$/);
+  if(m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+
+  // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY (formato europeo)
+  m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+
+  // Formato con anno a 2 cifre: può essere AA-MM-GG oppure GG-MM-AA
+  m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if(m){
+    const p1=parseInt(m[1]), p2=parseInt(m[2]), p3=parseInt(m[3]);
+    // Se il PRIMO numero è un anno plausibile (24-29) e il secondo è un mese valido → AA-MM-GG
+    if(p1>=24 && p1<=29 && p2>=1 && p2<=12 && p3>=1 && p3<=31)
+      return `20${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+    // Se il TERZO numero è un anno plausibile (24-29) → GG-MM-AA
+    if(p3>=24 && p3<=29 && p2>=1 && p2<=12 && p1>=1 && p1<=31)
+      return `20${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+    // Fallback: giorno-mese-anno europeo
+    if(p2>=1 && p2<=12 && p1>=1 && p1<=31)
+      return `20${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  }
+
+  // YYYY-M-D con cifre singole
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+
+  // Prova parsing nativo come ultima spiaggia
+  const d = new Date(s);
+  if(!isNaN(d.getTime())) return toLocalISO(d);
+
+  return null; // non riconosciuto
+}
+const pCol  = (p="") => { const l=p.toLowerCase(); if(l.includes("denuncia")) return "#e05252"; if(l.includes("segnalazione")) return "#c9a84c"; if(l.includes("diffida")) return "#7eb8f7"; return "#7a859e"; };
+const pBg   = (p="") => { const l=p.toLowerCase(); if(l.includes("denuncia")) return "#3a1212"; if(l.includes("segnalazione")) return "#3a2e0e"; if(l.includes("diffida")) return "#1a2640"; return "#252d42"; };
+// Colori per categoria violazione
+const violColor = v => {
+  const l = (v||"").toLowerCase();
+  if(l.includes("scia") || l.includes("licen") || l.includes("autoriz") || l.includes("abili") || l.includes("titolo")) return {fg:"#7eb8f7", bg:"#1a2640"};
+  if(l.includes("sanitar") || l.includes("igien") || l.includes("aliment") || l.includes("haccp")) return {fg:"#52b788", bg:"#1a3d2e"};
+  if(l.includes("acustic") || l.includes("rumor") || l.includes("musica") || l.includes("impatto")) return {fg:"#b07af7", bg:"#2a1a40"};
+  if(l.includes("suolo") || l.includes("dehors") || l.includes("insegn") || l.includes("pubblic")) return {fg:"#f7a052", bg:"#3a2010"};
+  if(l.includes("alcol") || l.includes("alcool") || l.includes("vendi")) return {fg:"#e05252", bg:"#3a1212"};
+  if(l.includes("nota") || l.includes("segnala") || l.includes("uffici")) return {fg:"#c9a84c", bg:"#3a2e0e"};
+  return {fg:"#ff9090", bg:"#3a1212"};
+};
+const hCol  = s => { const c=["#c9a84c","#7eb8f7","#52b788","#e05252","#b07af7","#f7a052"]; let h=0; for(let ch of (s||"a")) h=(h*31+ch.charCodeAt(0))%c.length; return c[h]; };
+const ini   = n => (n||"?").split(" ").map(w=>w[0]?.toUpperCase()||"").join("").slice(0,2)||"?";
+
+// ─── MAPPATURA EXCEL → APP ───────────────────────────────────────────────────
+function mapExcelRow(row) {
+  // Colonne: A=0 B=1 C=2 D=3 E=4 F=5 G=6 H=7 I=8 J=9 K=10 L=11 M=12 N=13 O=14 P=15 Q=16 R=17
+  const get = i => { const v = row[i]; return (v===null||v===undefined) ? "" : String(v).trim(); };
+
+  // Data
+  let data = "";
+  const rawData = row[0];
+  if(rawData instanceof Date) {
+    data = toLocalISO(rawData);
+  } else if(typeof rawData === "number") {
+    // Excel serial date
+    const d = new Date(Math.round((rawData - 25569) * 86400 * 1000));
+    data = toLocalISO(d);
+  } else if(rawData) {
+    const parts = String(rawData).split("/");
+    if(parts.length===3) data = `${parts[2]}-${parts[1].padStart(2,"0")}-${parts[0].padStart(2,"0")}`;
+  }
+
+  // Indirizzo = via + civico
+  const indirizzo = [get(2), get(3)].filter(Boolean).join(" ").trim();
+
+  // Tipo attività: se H è "ALTRO" usa la colonna I
+  const tipoH = get(7);
+  const tipoI = get(8);
+  const tipo = tipoH.toUpperCase()==="ALTRO" ? tipoI : tipoH;
+
+  // Titoli autorizzativi: colonne J-O (indice 9-14)
+  const labelsTitoli = ["SCIA Somministrazione/Vicinato","SCIA Sanitaria","Occupazione Suolo Pubblico","Insegne","Impatto Acustico","Vendita Alcolici"];
+  const titoliAutorizzativi = [];
+  for(let i=9; i<=14; i++) {
+    const v = get(i);
+    if(v && v.toUpperCase()!=="NO" && v.toUpperCase()!=="N/A" && v!=="") {
+      titoliAutorizzativi.push(`${labelsTitoli[i-9]}: ${v}`);
+    }
+  }
+
+  // Violazioni: motivo controllo (P=15)
+  const motivo = get(15);
+  const motivoControllo = motivo ? [motivo] : [];
+
+  // Note: esiti controllo (Q=16)
+  const note = get(16);
+
+  // Provvedimento: diffida (R=17)
+  const diffidaVal = get(17).toUpperCase();
+  const provvedimento = (diffidaVal==="SÌ"||diffidaVal==="SI"||diffidaVal==="YES"||diffidaVal==="Y") ? "Diffida" : "";
+
+  // Operatore: agenti operanti (B=1)
+  const agenti = get(1);
+
+  return {
+    data,
+    ora: "",
+    numeroVerbale: "",
+    nomeEsercizio: get(4),  // E
+    indirizzo,
+    titolare: get(5),        // F
+    piva: get(6),            // G
+    tipo,
+    motivoControllo,
+    provvedimento,
+    note,
+    titoliAutorizzativi,
+    riferimenti: [],
+    _agenti: agenti,         // salvato separatamente per mostrarlo
+  };
+}
+
+// ─── BASE COMPONENTS ─────────────────────────────────────────────────────────
+const INP = {background:"#1e2334",border:"1px solid #2a3049",borderRadius:7,color:"#e8e6df",fontSize:14,padding:"8px 10px",outline:"none",width:"100%"};
+
+function Avatar({name,size=26}){
+  return <div title={name} style={{width:size,height:size,borderRadius:"50%",background:hCol(name||"?"),color:"#0f1117",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.38,fontWeight:700,flexShrink:0}}>{ini(name||"?")}</div>;
+}
+function Badge({label,fg,bg}){
+  return <span style={{background:bg,color:fg,fontSize:11,padding:"3px 9px",borderRadius:999,whiteSpace:"nowrap"}}>{label}</span>;
+}
+function Field({label,children,full}){
+  return <div style={{display:"flex",flexDirection:"column",gap:5,gridColumn:full?"1/-1":undefined}}><label style={{fontSize:12,color:"#7a859e",fontWeight:500}}>{label}</label>{children}</div>;
+}
+function SecTitle({icon,text}){
+  return <div style={{fontSize:11,color:"#c9a84c",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:600,marginBottom:12,paddingBottom:8,borderBottom:"1px solid #2a3049"}}>{icon} {text}</div>;
+}
+function Overlay({onBgClick,children}){
+  return <div onClick={e=>e.target===e.currentTarget&&onBgClick()} className="overlay-wrap" style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",backdropFilter:"blur(4px)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"32px 16px",overflowY:"auto"}}>{children}</div>;
+}
+
+// ─── TAG INPUT ────────────────────────────────────────────────────────────────
+function TagInput({tags,onChange,placeholder}){
+  const [input,setInput]=useState(""); const ref=useRef();
+  const add=()=>{ const v=input.trim(); if(v&&!tags.includes(v)) onChange([...tags,v]); setInput(""); };
+  return (
+    <div>
+      <div onClick={()=>ref.current?.focus()} style={{background:"#1e2334",border:"1px solid #2a3049",borderRadius:7,padding:"6px 10px",display:"flex",flexWrap:"wrap",gap:6,cursor:"text",minHeight:42}}>
+        {tags.map((t,i)=>(
+          <span key={i} style={{background:"#252d42",border:"1px solid #2a3049",borderRadius:5,fontSize:12,padding:"2px 8px",display:"flex",alignItems:"center",gap:4,color:"#e8e6df"}}>
+            {t}<button onClick={()=>onChange(tags.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:14,lineHeight:1,padding:0}}>×</button>
+          </span>
+        ))}
+        <input ref={ref} value={input} onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter"||e.key===","){e.preventDefault();add();}}}
+          placeholder={tags.length===0?placeholder:""}
+          style={{background:"none",border:"none",outline:"none",color:"#e8e6df",fontSize:14,minWidth:160,flex:1}}/>
+      </div>
+      <p style={{fontSize:11,color:"#7a859e",marginTop:4}}>Premi Invio o virgola per aggiungere</p>
+    </div>
+  );
+}
+
+// ─── IMPORT EXCEL MODAL ───────────────────────────────────────────────────────
+function ImportModal({onClose, onImport}){
+  const [rows, setRows]       = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [done, setDone]       = useState(false);
+  const [error, setError]     = useState("");
+  const fileRef = useRef();
+
+  const handleFile = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    setLoading(true); setError("");
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const wb = XLSX.read(evt.target.result, {type:"array", cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:false, dateNF:"yyyy-mm-dd"});
+        // Skip header row
+        const dataRows = raw.slice(1).filter(r => r.some(c=>c!==null&&c!==""));
+        const mapped = dataRows.map(r => mapExcelRow(r)).filter(r=>r.nomeEsercizio);
+        setRows(mapped);
+      } catch(e) {
+        setError("Errore nella lettura del file. Assicurati che sia un file .xlsx valido.");
+      }
+      setLoading(false);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleImport = async () => {
+    if(!rows?.length) return;
+    setImporting(true);
+    await onImport(rows);
+    setDone(true);
+    setImporting(false);
+  };
+
+  return (
+    <Overlay onBgClick={onClose}>
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:680,padding:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22}}>
+          <div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>Importa da Excel</div>
+            <div style={{fontSize:12,color:"#7a859e",marginTop:3}}>Legge automaticamente le colonne della tua BANCA_DATI</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+
+        {!done ? <>
+          {/* MAPPATURA COLONNE */}
+          <div style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:9,padding:"14px 16px",marginBottom:18,fontSize:12}}>
+            <div style={{fontSize:10,color:"#c9a84c",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Mappatura colonne rilevata</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 24px",color:"#7a859e"}}>
+              {[["Data del controllo","→ Data"],["Denominazione attività","→ Nome esercizio"],["Indirizzo + Civico","→ Indirizzo"],["Condotto da","→ Titolare"],["Partita IVA","→ P.IVA"],["Tipologia attività","→ Tipo attività"],["SCIA, Sanitaria, OSP…","→ Titoli autorizzativi"],["Motivo controllo","→ Violazioni"],["Esiti controllo","→ Note"],["Diffida D.Lgs. 103/2024","→ Provvedimento"],["Agenti operanti","→ Campo operatore"]].map(([a,b],i)=>(
+                <div key={i} style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <span style={{color:"#e8e6df",minWidth:190}}>{a}</span>
+                  <span style={{color:"#52b788",fontSize:11}}>{b}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CARICA FILE */}
+          <div style={{border:"2px dashed #2a3049",borderRadius:10,padding:"28px 20px",textAlign:"center",marginBottom:16,cursor:"pointer",background:"#0f1117"}}
+            onClick={()=>fileRef.current?.click()}
+            onDragOver={e=>e.preventDefault()}
+            onDrop={e=>{e.preventDefault(); const f=e.dataTransfer.files[0]; if(f){fileRef.current.files=e.dataTransfer.files; handleFile({target:{files:[f]}});}}}>
+            <div style={{fontSize:36,marginBottom:10}}>📂</div>
+            <div style={{fontWeight:600,marginBottom:4}}>Clicca per selezionare il file Excel</div>
+            <div style={{fontSize:12,color:"#7a859e"}}>oppure trascinalo qui — formato .xlsx</div>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} style={{display:"none"}}/>
+          </div>
+
+          {error&&<div style={{background:"#3a1212",border:"1px solid #e0525240",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#ff9090",marginBottom:14}}>{error}</div>}
+
+          {loading&&<div style={{textAlign:"center",padding:"16px",color:"#7a859e",fontSize:14}}>⏳ Lettura file in corso…</div>}
+
+          {rows&&!loading&&(
+            <div style={{marginBottom:16}}>
+              <div style={{background:"#1a3d2e",border:"1px solid #52b78840",borderRadius:8,padding:"12px 16px",marginBottom:12,fontSize:13,color:"#52b788"}}>
+                ✅ Trovate <b>{rows.length} righe</b> valide pronte per l'importazione
+              </div>
+              {/* Anteprima prime 3 righe */}
+              <div style={{fontSize:11,color:"#7a859e",marginBottom:8,letterSpacing:"0.06em",textTransform:"uppercase"}}>Anteprima (prime 3 righe)</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:200,overflowY:"auto"}}>
+                {rows.slice(0,3).map((r,i)=>(
+                  <div key={i} style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:7,padding:"10px 12px",fontSize:12}}>
+                    <div style={{fontWeight:600,marginBottom:3}}>{r.nomeEsercizio} <span style={{color:"#7a859e",fontWeight:400}}>— {r.indirizzo}</span></div>
+                    <div style={{color:"#7a859e"}}>
+                      {fmt(r.data)} · {r.tipo} · Titolare: {r.titolare||"—"}
+                      {r.provvedimento&&<span style={{marginLeft:8,color:"#7eb8f7"}}>· {r.provvedimento}</span>}
+                    </div>
+                  </div>
+                ))}
+                {rows.length>3&&<div style={{fontSize:11,color:"#7a859e",textAlign:"center",padding:"6px"}}>…e altri {rows.length-3} record</div>}
+              </div>
+            </div>
+          )}
+
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:16,borderTop:"1px solid #2a3049"}}>
+            <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:14,padding:"8px 18px",borderRadius:7,cursor:"pointer"}}>Annulla</button>
+            <button disabled={!rows||importing} onClick={handleImport} style={{
+              background:rows&&!importing?"#c9a84c":"#5a4a1e",color:rows&&!importing?"#0f1117":"#7a6030",
+              fontSize:14,fontWeight:700,padding:"8px 22px",border:"none",borderRadius:7,cursor:rows?"pointer":"not-allowed"
+            }}>
+              {importing?`⏳ Importazione in corso…`:`⬆ Importa ${rows?rows.length:""} record nel database`}
+            </button>
+          </div>
+        </> : (
+          <div style={{textAlign:"center",padding:"32px 0"}}>
+            <div style={{fontSize:52,marginBottom:16}}>🎉</div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700,marginBottom:8}}>Importazione completata!</div>
+            <div style={{fontSize:14,color:"#7a859e",marginBottom:24}}>Tutti i record sono stati caricati nel database condiviso.</div>
+            <button onClick={onClose} style={{background:"#c9a84c",color:"#0f1117",fontSize:14,fontWeight:700,padding:"10px 28px",border:"none",borderRadius:8,cursor:"pointer"}}>Vai al registro →</button>
+          </div>
+        )}
+      </div>
+    </Overlay>
+  );
+}
+
+// ─── SETUP ────────────────────────────────────────────────────────────────────
+function SetupScreen({onSave}){
+  const [cfg,setCfg]=useState({apiKey:"",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""});
+  const [raw,setRaw]=useState(""); const [error,setError]=useState("");
+  const handlePaste=e=>{
+    const text=e.target.value; setRaw(text); setError("");
+    try{
+      const parsed={};
+      [["apiKey",/apiKey:\s*["'](.+?)["']/],["authDomain",/authDomain:\s*["'](.+?)["']/],["projectId",/projectId:\s*["'](.+?)["']/],["storageBucket",/storageBucket:\s*["'](.+?)["']/],["messagingSenderId",/messagingSenderId:\s*["'](.+?)["']/],["appId",/appId:\s*["'](.+?)["']/]]
+        .forEach(([k,re])=>{ const m=text.match(re); if(m) parsed[k]=m[1]; });
+      if(Object.keys(parsed).length>=3) setCfg(p=>({...p,...parsed}));
+    }catch(_){}
+  };
+  const valid=Object.values(cfg).every(v=>v.trim().length>0);
+  const handleSave=()=>{
+    if(!valid){setError("Compila tutti i campi o incolla il blocco di configurazione."); return;}
+    try{ firebase.app(); firebase.app().delete(); }catch(_){}
+    try{ firebase.initializeApp(cfg); firebase.firestore(); localStorage.setItem(CFG_KEY,JSON.stringify(cfg)); onSave(cfg); }
+    catch(e){ setError("Configurazione non valida. Controlla i valori e riprova."); }
+  };
+  return (
+    <div style={{minHeight:"100vh",background:"#0f1117",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"40px 16px"}}>
+      <div style={{width:"100%",maxWidth:560}}>
+        <div style={{textAlign:"center",marginBottom:32}}><div style={{fontSize:48,marginBottom:12}}>🔥</div><div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:26,fontWeight:700}}>Configura il database</div><div style={{fontSize:14,color:"#7a859e",marginTop:6}}>Operazione da fare una sola volta.</div></div>
+        <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:12,padding:22,marginBottom:14}}>
+          <div style={{fontWeight:600,marginBottom:10}}>Incolla il blocco firebaseConfig copiato da Firebase</div>
+          <p style={{fontSize:13,color:"#7a859e",lineHeight:1.7,marginBottom:10}}>Vai su <a href="https://console.firebase.google.com" target="_blank" style={{color:"#c9a84c"}}>console.firebase.google.com</a> → il tuo progetto → ⚙️ Impostazioni → sezione "Le tue app" → copia il blocco <code style={{background:"#252d42",padding:"1px 5px",borderRadius:4,color:"#c9a84c"}}>firebaseConfig</code>.</p>
+          <textarea value={raw} onChange={handlePaste} placeholder={"Incolla qui il blocco firebaseConfig...\n\nconst firebaseConfig = {\n  apiKey: \"...\",\n  ...\n};"} style={{...INP,minHeight:130,resize:"vertical",fontFamily:"monospace",fontSize:12,lineHeight:1.7}}/>
+          {Object.values(cfg).some(v=>v.length>0)&&<div style={{background:"#1a3d2e",border:"1px solid #52b78840",borderRadius:7,padding:"8px 12px",marginTop:8,fontSize:12,color:"#52b788"}}>✅ Valori rilevati automaticamente!</div>}
+        </div>
+        {error&&<div style={{background:"#3a1212",border:"1px solid #e0525240",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#ff9090",marginBottom:12}}>{error}</div>}
+        <button onClick={handleSave} style={{width:"100%",background:valid?"#c9a84c":"#5a4a1e",color:valid?"#0f1117":"#7a6030",fontSize:15,fontWeight:700,padding:"12px",border:"none",borderRadius:9,cursor:valid?"pointer":"not-allowed"}}>🚀 Connetti il database e avvia l'app</button>
+        <p style={{fontSize:11,color:"#7a859e",textAlign:"center",marginTop:10}}>La configurazione viene salvata nel browser.</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── LOG ATTIVITÀ ────────────────────────────────────────────────────────────
+const AZIONI_LABEL = {
+  "login":        {icon:"🔑", label:"Accesso",              color:"#52b788"},
+  "logout":       {icon:"🚪", label:"Uscita",                color:"#7a859e"},
+  "inserimento":  {icon:"➕", label:"Inserimento record",    color:"#c9a84c"},
+  "modifica":     {icon:"✏️", label:"Modifica record",       color:"#7eb8f7"},
+  "eliminazione": {icon:"🗑", label:"Eliminazione record",   color:"#e05252"},
+  "importazione": {icon:"⬆",  label:"Importazione Excel",    color:"#b07af7"},
+  "consultazione":{icon:"👁",  label:"Consultazione record", color:"#7a859e"},
+  "scheda_pdf":   {icon:"🖨",  label:"Generazione scheda PDF",color:"#f7a052"},
+  "report_pdf":   {icon:"📊",  label:"Esportazione report PDF",color:"#f7a052"},
+  "export_csv":   {icon:"⬇",  label:"Esportazione CSV",     color:"#52b788"},
+  "ricerca_tag":  {icon:"🏷",  label:"Ricerca per tag",      color:"#b07af7"},
+};
+
+function LogViewer({db, onClose}){
+  const [logs,setLogs]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filterOp,setFilterOp]=useState("");
+  const [filterAzione,setFilterAzione]=useState("");
+  const [operatori,setOperatori]=useState([]);
+  const [periodo,setPeriodo]=useState("7"); // giorni
+
+  useEffect(()=>{
+    const cut = new Date();
+    cut.setDate(cut.getDate()-parseInt(periodo||7));
+    const unsub = db.collection(COLL_LOG)
+      .orderBy("timestamp","desc")
+      .limit(500)
+      .onSnapshot(snap=>{
+        setLogs(snap.docs.map(d=>({id:d.id,...d.data()})));
+        setLoading(false);
+      });
+    return ()=>unsub();
+  },[periodo]);
+
+  useEffect(()=>{
+    db.collection(COLL_OPS).get().then(snap=>{
+      setOperatori(snap.docs.map(d=>d.data().nome));
+    });
+  },[]);
+
+  const filtered = logs.filter(l=>{
+    const mOp = !filterOp || (l.operatore||"").toLowerCase().includes(filterOp.toLowerCase());
+    const mAz = !filterAzione || l.azione===filterAzione;
+    return mOp && mAz;
+  });
+
+  const fmtLog = ts => {
+    if(!ts) return "—";
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  };
+
+  // Raggruppa per operatore per riepilogo
+  const perOp = {};
+  logs.forEach(l=>{ const k=l.operatore||"?"; perOp[k]=(perOp[k]||0)+1; });
+  const topOp = Object.entries(perOp).sort(([,a],[,b])=>b-a);
+
+  return (
+    <Overlay onBgClick={onClose}>
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:860,padding:28}}>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>📋 Log attività</div>
+            <div style={{fontSize:12,color:"#7a859e",marginTop:3}}>Cronologia completa di tutte le azioni effettuate</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+
+        {/* Riepilogo per operatore */}
+        {topOp.length>0&&(
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+            {topOp.map(([nome,n])=>(
+              <div key={nome} style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}
+                onClick={()=>setFilterOp(filterOp===nome?"":nome)}>
+                <Avatar name={nome} size={22}/>
+                <span style={{fontSize:13,color:filterOp===nome?"#c9a84c":"#e8e6df"}}>{nome}</span>
+                <span style={{background:"#252d42",color:"#c9a84c",fontSize:11,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{n}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Filtri */}
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+          <select value={periodo} onChange={e=>setPeriodo(e.target.value)}
+            style={{...INP,width:"auto",cursor:"pointer",borderRadius:7,padding:"6px 10px",fontSize:12}}>
+            <option value="1">Ultime 24 ore</option>
+            <option value="7">Ultimi 7 giorni</option>
+            <option value="30">Ultimi 30 giorni</option>
+            <option value="90">Ultimi 90 giorni</option>
+            <option value="3650">Tutto</option>
+          </select>
+          <input placeholder="Filtra per operatore…" value={filterOp} onChange={e=>setFilterOp(e.target.value)}
+            style={{...INP,width:180,fontSize:12,padding:"6px 10px"}}/>
+          <select value={filterAzione} onChange={e=>setFilterAzione(e.target.value)}
+            style={{...INP,width:"auto",cursor:"pointer",borderRadius:7,padding:"6px 10px",fontSize:12}}>
+            <option value="">Tutte le azioni</option>
+            {Object.entries(AZIONI_LABEL).map(([k,v])=>(
+              <option key={k} value={k}>{v.icon} {v.label}</option>
+            ))}
+          </select>
+          <span style={{fontSize:12,color:"#7a859e",alignSelf:"center",marginLeft:4}}>
+            {filtered.length} eventi
+          </span>
+        </div>
+
+        {/* Tabella log */}
+        <div style={{maxHeight:460,overflowY:"auto",border:"1px solid #2a3049",borderRadius:8}}>
+          {loading
+            ?<div style={{textAlign:"center",padding:32,color:"#7a859e"}}>⏳ Caricamento…</div>
+            :filtered.length===0
+              ?<div style={{textAlign:"center",padding:32,color:"#7a859e"}}>Nessun evento trovato</div>
+              :<table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead style={{position:"sticky",top:0,zIndex:1}}>
+                  <tr style={{background:"#0f1117",borderBottom:"2px solid #2a3049"}}>
+                    {["Data e ora","Operatore","Azione","Dettaglio"].map(h=>(
+                      <th key={h} style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"8px 12px",textAlign:"left",fontWeight:500}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((l,i)=>{
+                    const az = AZIONI_LABEL[l.azione]||{icon:"•",label:l.azione,color:"#7a859e"};
+                    return (
+                      <tr key={l.id} style={{borderBottom:"1px solid #2a3049",background:i%2===0?"transparent":"#1a1e2a"}}>
+                        <td style={{padding:"8px 12px",fontSize:11,color:"#7a859e",whiteSpace:"nowrap"}}>{fmtLog(l.timestamp)}</td>
+                        <td style={{padding:"8px 12px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7}}>
+                            <Avatar name={l.operatore||"?"} size={20}/>
+                            <span style={{fontSize:12,color:"#e8e6df"}}>{l.operatore||"—"}</span>
+                            {l.matricola&&<span style={{fontSize:10,color:"#7a859e"}}>({l.matricola})</span>}
+                          </div>
+                        </td>
+                        <td style={{padding:"8px 12px",whiteSpace:"nowrap"}}>
+                          <span style={{background:az.color+"25",color:az.color,fontSize:11,padding:"2px 8px",borderRadius:999,fontWeight:600}}>
+                            {az.icon} {az.label}
+                          </span>
+                        </td>
+                        <td style={{padding:"8px 12px",fontSize:11,color:"#7a859e",maxWidth:280,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {l.dettaglio||"—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+          }
+        </div>
+
+        <div style={{display:"flex",justifyContent:"flex-end",paddingTop:14,marginTop:14,borderTop:"1px solid #2a3049"}}>
+          <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:13,padding:"7px 16px",borderRadius:7,cursor:"pointer"}}>Chiudi</button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+// ─── GESTIONE OPERATORI MODAL ────────────────────────────────────────────────
+function GestioneOperatoriModal({db, onClose}){
+  const [operatori,setOperatori]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [nuovoNome,setNuovoNome]=useState("");
+  const [nuovaMatricola,setNuovaMatricola]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [errore,setErrore]=useState("");
+
+  useEffect(()=>{
+    const unsub = db.collection(COLL_OPS).orderBy("nome").onSnapshot(snap=>{
+      setOperatori(snap.docs.map(d=>({id:d.id,...d.data()})));
+      setLoading(false);
+    });
+    return ()=>unsub();
+  },[]);
+
+  const aggiungi = async () => {
+    if(!nuovoNome.trim()) return;
+    setSaving(true); setErrore("");
+    try {
+      const esiste = operatori.find(o=>o.nome.toLowerCase()===nuovoNome.trim().toLowerCase());
+      if(esiste){ setErrore("Operatore già presente in lista."); setSaving(false); return; }
+      await db.collection(COLL_OPS).add({nome:nuovoNome.trim(), matricola:nuovaMatricola.trim(), aggiuntoIl:firebase.firestore.FieldValue.serverTimestamp()});
+      setNuovoNome(""); setNuovaMatricola("");
+    } catch(e){ setErrore("Errore nel salvataggio."); }
+    setSaving(false);
+  };
+
+  const rimuovi = async (id, nome) => {
+    if(!window.confirm(`Rimuovere "${nome}" dalla lista degli autorizzati?`)) return;
+    await db.collection(COLL_OPS).doc(id).delete();
+  };
+
+  return (
+    <Overlay onBgClick={onClose}>
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:560,padding:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>🔐 Operatori autorizzati</div>
+            <div style={{fontSize:12,color:"#7a859e",marginTop:3}}>Solo queste persone possono accedere all'app</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+
+        {/* Avviso se lista vuota */}
+        {!loading&&operatori.length===0&&(
+          <div style={{background:"#3a2e0e",border:"1px solid #c9a84c40",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#c9a84c",marginBottom:16,lineHeight:1.6}}>
+            ⚠️ La lista è vuota — l'accesso è <b>aperto a tutti</b>. Aggiungi almeno un operatore per attivare il controllo accessi.
+          </div>
+        )}
+
+        {/* Lista operatori */}
+        <div style={{maxHeight:300,overflowY:"auto",marginBottom:16}}>
+          {loading
+            ?<div style={{textAlign:"center",padding:20,color:"#7a859e",fontSize:13}}>⏳ Caricamento…</div>
+            :operatori.length===0
+              ?<div style={{textAlign:"center",padding:20,color:"#7a859e",fontSize:13}}>Nessun operatore aggiunto</div>
+              :<table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead>
+                  <tr style={{borderBottom:"2px solid #2a3049"}}>
+                    <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"6px 10px",textAlign:"left",fontWeight:500}}>Nome e Cognome</th>
+                    <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"6px 10px",textAlign:"left",fontWeight:500}}>Matricola</th>
+                    <th style={{width:40}}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {operatori.map(op=>(
+                    <tr key={op.id} style={{borderBottom:"1px solid #2a3049"}}>
+                      <td style={{padding:"9px 10px",fontSize:14,fontWeight:600}}>{op.nome}</td>
+                      <td style={{padding:"9px 10px",fontSize:13,color:"#7a859e"}}>{op.matricola||"—"}</td>
+                      <td style={{padding:"9px 10px",textAlign:"center"}}>
+                        <button onClick={()=>rimuovi(op.id,op.nome)}
+                          style={{background:"none",border:"none",color:"#e05252",cursor:"pointer",fontSize:16}} title="Rimuovi">🗑</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+          }
+        </div>
+
+        {/* Aggiungi nuovo operatore */}
+        <div style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:8,padding:14,marginBottom:14}}>
+          <div style={{fontSize:11,color:"#c9a84c",letterSpacing:"0.07em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>+ Aggiungi operatore</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 140px auto",gap:8,alignItems:"center"}}>
+            <input placeholder="Nome e Cognome *" value={nuovoNome}
+              onChange={e=>{setNuovoNome(e.target.value);setErrore("");}}
+              onKeyDown={e=>e.key==="Enter"&&aggiungi()}
+              style={{...INP,fontSize:13,padding:"7px 10px"}}/>
+            <input placeholder="Matricola" value={nuovaMatricola}
+              onChange={e=>setNuovaMatricola(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&aggiungi()}
+              style={{...INP,fontSize:13,padding:"7px 10px"}}/>
+            <button onClick={aggiungi} disabled={!nuovoNome.trim()||saving}
+              style={{background:nuovoNome.trim()?"#c9a84c":"#5a4a1e",color:nuovoNome.trim()?"#0f1117":"#7a6030",border:"none",borderRadius:7,padding:"7px 14px",fontWeight:700,fontSize:13,cursor:nuovoNome.trim()?"pointer":"not-allowed",whiteSpace:"nowrap"}}>
+              {saving?"⏳":"Aggiungi"}
+            </button>
+          </div>
+          {errore&&<div style={{fontSize:12,color:"#ff9090",marginTop:8}}>{errore}</div>}
+        </div>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,borderTop:"1px solid #2a3049"}}>
+          <div style={{fontSize:11,color:"#7a859e"}}>
+            {operatori.length>0?`${operatori.length} operatore${operatori.length!==1?"i":""} autorizzato${operatori.length!==1?"i":""}`:""} 
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:13,padding:"7px 16px",borderRadius:7,cursor:"pointer"}}>Chiudi</button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+function LoginScreen({onLogin, db}){
+  const [nome,setNome]=useState("");
+  const [matricola,setMatricola]=useState("");
+  const [checking,setChecking]=useState(false);
+  const [errore,setErrore]=useState("");
+  const valid=nome.trim().length>=2;
+
+  const handleAccedi = async () => {
+    if(!valid) return;
+    setChecking(true); setErrore("");
+    try {
+      const snap = await db.collection(COLL_OPS).get();
+      if(snap.empty) {
+        // Nessun operatore in lista → accesso libero (primo avvio)
+        onLogin(nome.trim(), matricola.trim());
+        return;
+      }
+      const lista = snap.docs.map(d=>d.data());
+      const nomeInput = nome.trim().toLowerCase();
+      const matInput  = matricola.trim().toLowerCase();
+      const trovato = lista.find(op => {
+        const nomeOk = op.nome.toLowerCase() === nomeInput;
+        // Se ha matricola in lista, deve corrispondere; se è vuota in lista, basta il nome
+        const matOk  = !op.matricola || op.matricola.toLowerCase() === matInput;
+        return nomeOk && matOk;
+      });
+      if(trovato) {
+        onLogin(trovato.nome, trovato.matricola||matricola.trim());
+      } else {
+        setErrore("Accesso negato. Nome o matricola non autorizzati. Contatta l'amministratore.");
+      }
+    } catch(e) {
+      setErrore("Errore di connessione. Riprova.");
+    }
+    setChecking(false);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:"#0f1117",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:16,padding:36,maxWidth:400,width:"100%"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:40,marginBottom:12}}>🏛</div>
+          <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:24,fontWeight:700}}>Registro Controlli</div>
+          <div style={{fontSize:12,color:"#7a859e",marginTop:4,letterSpacing:"0.06em",textTransform:"uppercase"}}>Polizia Municipale</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <Field label="Nome e Cognome *">
+            <input style={INP} placeholder="Es. Mario Rossi" value={nome}
+              onChange={e=>{setNome(e.target.value);setErrore("");}}
+              onKeyDown={e=>e.key==="Enter"&&valid&&handleAccedi()}/>
+          </Field>
+          <Field label="Matricola">
+            <input style={INP} placeholder="Es. Isp. 1234" value={matricola}
+              onChange={e=>{setMatricola(e.target.value);setErrore("");}}
+              onKeyDown={e=>e.key==="Enter"&&valid&&handleAccedi()}/>
+          </Field>
+          {errore&&(
+            <div style={{background:"#3a1212",border:"1px solid #e0525240",borderRadius:7,padding:"10px 12px",fontSize:12,color:"#ff9090",lineHeight:1.5}}>
+              🔒 {errore}
+            </div>
+          )}
+          <button disabled={!valid||checking} onClick={handleAccedi} style={{
+            marginTop:4,
+            background:valid&&!checking?"#c9a84c":"#5a4a1e",
+            color:valid&&!checking?"#0f1117":"#7a6030",
+            fontSize:14,fontWeight:600,padding:"10px",border:"none",borderRadius:8,
+            cursor:valid&&!checking?"pointer":"not-allowed"
+          }}>{checking?"⏳ Verifica in corso…":"Accedi →"}</button>
+        </div>
+        <p style={{fontSize:11,color:"#7a859e",textAlign:"center",marginTop:16}}>Accesso riservato al personale autorizzato.</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── FORM AGGIUNGI/MODIFICA ───────────────────────────────────────────────────
+const EMPTY={data:toLocalISO(new Date()),agentiOp:[],tipoAttivita:"",nomeEsercizio:"",ragioneSociale:"",legaleRappresentante:"",piva:"",tipo:"",motivoControllo:[],violazioniRiscontrate:[],provvedimenti:[{tipo:"",note:"",importo:""}],titoliAutorizzativi:[],riferimenti:[]};
+
+function AddModal({onClose,onSave,initial,operatore}){
+  const [f,setF]=useState(()=>{ if(!initial) return EMPTY; const provs = initial.provvedimenti?.length>0 ? initial.provvedimenti : (initial.provvedimento?[{tipo:initial.provvedimento,note:initial.note||"",importo:initial.importoSanzione||""}]:[{tipo:"",note:"",importo:""}]); return {...EMPTY,...initial,motivoControllo:initial.motivoControllo||[],violazioniRiscontrate:initial.violazioniRiscontrate||[],riferimenti:initial.riferimenti||[],titoliAutorizzativi:initial.titoliAutorizzativi||[],provvedimenti:provs,agentiOp:Array.isArray(initial.agentiOp)?initial.agentiOp:(initial.agentiOp?initial.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(initial._agenti?initial._agenti.split(",").map(s=>s.trim()).filter(Boolean):[])),ragioneSociale:initial.ragioneSociale||"",legaleRappresentante:initial.legaleRappresentante||initial.titolare||"",tipoAttivita:initial.tipoAttivita||""}; });
+  const [saving,setSaving]=useState(false);
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const valid=f.nomeEsercizio.trim()&&f.indirizzo.trim();
+  const isEdit=!!initial;
+  const handleSave=async()=>{ if(!valid) return; setSaving(true); await onSave({...f}); setSaving(false); };
+  return (
+    <Overlay onBgClick={onClose}>
+      <div className="overlay-modal" style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:660,padding:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+          <div><div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>{isEdit?"Modifica controllo":"Nuovo controllo"}</div><div style={{fontSize:12,color:"#7a859e",marginTop:3}}>Operatore: <b style={{color:"#c9a84c"}}>{operatore.nome}</b>{operatore.matricola?` · ${operatore.matricola}`:""}</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+        <SecTitle icon="📋" text="Dati esercizio"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+          {/* Tipo attività — menu principale */}
+          <Field label="Tipo attività *" full>
+            <select style={{...INP,cursor:"pointer",fontWeight:600}} value={f.tipoAttivita} onChange={e=>set("tipoAttivita",e.target.value)}>
+              <option value="">— Seleziona tipo attività —</option>
+              <option value="Attività Commerciale">🏪 Attività Commerciale</option>
+              <option value="Attività Ricettiva Extralberghiera">🏠 Attività Ricettiva Extralberghiera</option>
+            </select>
+          </Field>
+          <Field label="Data controllo">
+            <input style={{...INP,colorScheme:"dark"}} type="date" value={f.data} onChange={e=>set("data",e.target.value)}/>
+          </Field>
+          <Field label="Agenti / Operatori" full>
+            <TagInput tags={f.agentiOp||[]} onChange={v=>set("agentiOp",v)} placeholder="Cognome agente — Invio o virgola per aggiungere"/>
+          </Field>
+          <Field label="Nome / Denominazione *" full><input style={INP} placeholder="Es. Pasticceria Rossi" value={f.nomeEsercizio} onChange={e=>set("nomeEsercizio",e.target.value)}/></Field>
+          <Field label="Indirizzo *" full><input style={INP} placeholder="Via, n°, città" value={f.indirizzo} onChange={e=>set("indirizzo",e.target.value)}/></Field>
+          <Field label="Ragione Sociale" full><input style={INP} placeholder="Es. Rossi S.r.l." value={f.ragioneSociale} onChange={e=>set("ragioneSociale",e.target.value)}/></Field>
+          <Field label="Legale Rappresentante"><input style={INP} placeholder="Cognome Nome" value={f.legaleRappresentante} onChange={e=>set("legaleRappresentante",e.target.value)}/></Field>
+          <Field label="P.IVA / C.F."><input style={INP} placeholder="—" value={f.piva} onChange={e=>set("piva",e.target.value)}/></Field>
+          <Field label="Sottotipo attività" full><input style={INP} placeholder="Es. Bar, Ristorante, B&B, Casa Vacanze…" value={f.tipo} onChange={e=>set("tipo",e.target.value)}/></Field>
+        </div>
+        <SecTitle icon="⚠️" text="Motivo del controllo"/>
+        <div style={{marginBottom:20}}><Field label="Motivo del controllo"><TagInput tags={f.motivoControllo} onChange={v=>set("motivoControllo",v)} placeholder="Inserisci il motivo e premi Invio…"/></Field></div>
+        <SecTitle icon="🚨" text="Violazioni riscontrate"/>
+        <div style={{marginBottom:20}}><Field label="Violazioni riscontrate"><TagInput tags={f.violazioniRiscontrate} onChange={v=>set("violazioniRiscontrate",v)} placeholder="Descrivi la violazione e premi Invio…"/></Field></div>
+        <SecTitle icon="⚖️" text="Provvedimenti adottati"/>
+        <div style={{marginBottom:20}}>
+          {(f.provvedimenti||[{tipo:"",note:"",importo:""}]).map((prov,pi)=>(
+            <div key={pi} style={{
+              background:"#0f1117", border:"1px solid #2a3049", borderRadius:8,
+              padding:"12px 14px", marginBottom:10, position:"relative"
+            }}>
+              {(f.provvedimenti||[]).length>1&&(
+                <button type="button" onClick={()=>set("provvedimenti",(f.provvedimenti||[]).filter((_,i)=>i!==pi))}
+                  style={{position:"absolute",top:8,right:8,background:"none",border:"none",color:"#e05252",cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
+              )}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <Field label={`Provvedimento ${(f.provvedimenti||[]).length>1?`#${pi+1}`:""}`}>
+                  <select style={{...INP,cursor:"pointer"}}
+                    value={prov.tipo||""}
+                    onChange={e=>{ const pp=[...(f.provvedimenti||[])]; pp[pi]={...pp[pi],tipo:e.target.value}; set("provvedimenti",pp); }}>
+                    <option value="">— Seleziona —</option>
+                    {PROVVEDIMENTI.map(p=><option key={p}>{p}</option>)}
+                  </select>
+                </Field>
+                <Field label="Note / Estremi atto">
+                  <input style={INP} placeholder="Riferimento normativo, importo…"
+                    value={prov.note||""}
+                    onChange={e=>{ const pp=[...(f.provvedimenti||[])]; pp[pi]={...pp[pi],note:e.target.value}; set("provvedimenti",pp); }}/>
+                </Field>
+                <Field label="Importo sanzione (€)" full>
+                  <input type="number" style={INP} placeholder="Lascia vuoto per calcolo automatico da tariffario"
+                    value={prov.importo||""}
+                    onChange={e=>{ const pp=[...(f.provvedimenti||[])]; pp[pi]={...pp[pi],importo:e.target.value}; set("provvedimenti",pp); }}/>
+                </Field>
+              </div>
+            </div>
+          ))}
+          {/* Pulsante aggiungi provvedimento — condizionale */}
+          <button type="button"
+            onClick={()=>set("provvedimenti",[...(f.provvedimenti||[]),{tipo:"",note:"",importo:""}])}
+            style={{
+              width:"100%", background:"none",
+              border:"1px dashed #2a3049", color:"#7a859e",
+              borderRadius:8, padding:"8px", fontSize:12,
+              cursor:"pointer", display:"flex", alignItems:"center",
+              justifyContent:"center", gap:6, transition:"all .15s"
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#c9a84c50";e.currentTarget.style.color="#c9a84c";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="#2a3049";e.currentTarget.style.color="#7a859e";}}>
+            + Aggiungi altro provvedimento
+          </button>
+        </div>
+        <SecTitle icon="📄" text="Titoli autorizzativi"/>
+        <div style={{marginBottom:20}}><Field label="Autorizzazioni verificate"><TagInput tags={f.titoliAutorizzativi} onChange={v=>set("titoliAutorizzativi",v)} placeholder="Es. SCIA, Licenza commerciale… — Invio per aggiungere"/></Field></div>
+        <SecTitle icon="📜" text="Riferimenti normativi"/>
+        <div style={{marginBottom:24}}><Field label="Norme contestate"><TagInput tags={f.riferimenti} onChange={v=>set("riferimenti",v)} placeholder="Es. Art. 20 D.Lgs 81/2008 — Invio per aggiungere"/></Field></div>
+        <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:16,borderTop:"1px solid #2a3049"}}>
+          <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:14,padding:"8px 18px",borderRadius:7,cursor:"pointer"}}>Annulla</button>
+          <button disabled={!valid||saving} onClick={handleSave} style={{background:valid&&!saving?"#c9a84c":"#5a4a1e",color:valid&&!saving?"#0f1117":"#7a6030",fontSize:14,fontWeight:600,padding:"8px 22px",border:"none",borderRadius:7,cursor:valid?"pointer":"not-allowed"}}>
+            {saving?"⏳ Salvataggio…":isEdit?"💾 Aggiorna":"💾 Salva controllo"}
+          </button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+// ─── DETTAGLIO ────────────────────────────────────────────────────────────────
+function DetailModal({record:r,onClose,onDelete,onEdit}){
+  const DI=({label,value,color})=>(<div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:11,color:"#7a859e"}}>{label}</span><span style={{fontSize:14,color:color||"#e8e6df"}}>{value||"—"}</span></div>);
+  return (
+    <Overlay onBgClick={onClose}>
+      <div className="overlay-modal" style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:640,padding:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+          <div><div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>{r.nomeEsercizio}</div><div style={{fontSize:12,color:"#7a859e",marginTop:3}}>{r.indirizzo} — {fmt(r.data)}{r.ora?` ore ${r.ora}`:""}{r.numeroVerbale&&<span style={{marginLeft:8,background:"#252d42",color:"#c9a84c",fontSize:11,padding:"1px 7px",borderRadius:4}}>Verbale {r.numeroVerbale}</span>}</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+        <div style={{marginBottom:18}}><SecTitle icon="📋" text="Dati esercizio"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 24px"}}><DI label="Tipo attività" value={r.tipoAttivita}/><DI label="Sottotipo" value={r.tipo}/>
+            <DI label="Ragione Sociale" value={r.ragioneSociale}/><DI label="Legale Rappresentante" value={r.legaleRappresentante||r.titolare}/>
+            <DI label="P.IVA / C.F." value={r.piva}/><DI label="Data e ora" value={`${fmt(r.data)}${r.ora?" ore "+r.ora:""}`}/>
+            {(()=>{
+              const ags=Array.isArray(r.agentiOp)?r.agentiOp:(r.agentiOp?r.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(r._agenti?r._agenti.split(",").map(s=>s.trim()).filter(Boolean):[]));
+              if(!ags.length) return null;
+              return <div style={{gridColumn:"1/-1"}}>
+                <span style={{fontSize:11,color:"#7a859e",display:"block",marginBottom:4}}>Agenti operanti</span>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {ags.map((a,i)=>(
+                    <span key={i} style={{background:hCol(a)+"30",color:hCol(a),border:`1px solid ${hCol(a)}60`,fontSize:13,padding:"3px 12px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                      <Avatar name={a} size={18}/>{a}
+                    </span>
+                  ))}
+                </div>
+              </div>;
+            })()}</div>
+        </div>
+        <div style={{marginBottom:18}}><SecTitle icon="⚠️" text="Motivo del controllo"/>{!r.motivoControllo?.length?<span style={{fontSize:13,color:"#7a859e"}}>Nessuna</span>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{r.motivoControllo.map((v,i)=><Badge key={i} label={v} fg="#ff9090" bg="#3a1212"/>)}</div>}</div>
+        <div style={{marginBottom:18}}><SecTitle icon="🚨" text="Violazioni riscontrate"/>
+          {!r.violazioniRiscontrate?.length
+            ?<span style={{fontSize:13,color:"#7a859e"}}>Nessuna</span>
+            :<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{r.violazioniRiscontrate.map((v,i)=>{ const c=violColor(v); return <span key={i} style={{background:c.bg,color:c.fg,fontSize:12,padding:"3px 9px",borderRadius:999}}>{v}</span>; })}</div>}
+        </div>
+        <div style={{marginBottom:18}}><SecTitle icon="⚖️" text="Provvedimenti adottati"/>
+          {(()=>{
+            // Normalizza: nuovo formato (array oggetti) o vecchio (stringa)
+            const provs = r.provvedimenti?.length>0
+              ? r.provvedimenti.filter(p=>p.tipo||p)
+              : (r.provvedimento?[{tipo:r.provvedimento,note:r.note||"",importo:r.importoSanzione||""}]:[]);
+            if(provs.length===0) return <span style={{fontSize:13,color:"#7a859e"}}>Nessun provvedimento</span>;
+            return provs.map((p,i)=>{
+              const tipo=typeof p==="string"?p:p.tipo;
+              const nota=typeof p==="string"?"":p.note;
+              const imp=typeof p==="string"?"":p.importo;
+              return (
+                <div key={i} style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:7,padding:"10px 14px",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:nota||imp?6:0}}>
+                    <span style={{background:pBg(tipo),color:pCol(tipo),fontSize:13,padding:"3px 12px",borderRadius:999,fontWeight:600}}>{tipo}</span>
+                    {provs.length>1&&<span style={{fontSize:11,color:"#7a859e"}}>#{i+1}</span>}
+                  </div>
+                  {nota&&<div style={{fontSize:12,color:"#7a859e"}}>Note: {nota}</div>}
+                  {imp&&<div style={{fontSize:12,color:"#52b788",fontWeight:600}}>Importo: {fmtEuro(parseFloat(imp))}</div>}
+                </div>
+              );
+            });
+          })()}
+        </div>
+        <div style={{marginBottom:18}}><SecTitle icon="📄" text="Titoli autorizzativi"/>{!r.titoliAutorizzativi?.length?<span style={{fontSize:13,color:"#7a859e"}}>Nessuno</span>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{r.titoliAutorizzativi.map((t,i)=><Badge key={i} label={t} fg="#7eb8f7" bg="#1a2640"/>)}</div>}</div>
+        <div style={{marginBottom:16}}><SecTitle icon="📜" text="Riferimenti normativi"/>{!r.riferimenti?.length?<span style={{fontSize:13,color:"#7a859e"}}>Nessuno</span>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{r.riferimenti.map((ref,i)=><Badge key={i} label={ref} fg="#c9a84c" bg="#3a2e0e"/>)}</div>}</div>
+        {r.creatoDA&&<div style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:8,padding:"10px 14px",marginBottom:20,fontSize:12,color:"#7a859e"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}><Avatar name={r.creatoDA} size={20}/><span>Inserito da <b style={{color:"#e8e6df"}}>{r.creatoDA}</b> · {fmtTs(r.creatoIl)}</span></div>
+          {r.modificatoDa&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}><Avatar name={r.modificatoDa} size={20}/><span>Modificato da <b style={{color:"#e8e6df"}}>{r.modificatoDa}</b> · {fmtTs(r.modificatoIl)}</span></div>}
+        </div>}
+        <div style={{display:"flex",justifyContent:"space-between",paddingTop:16,borderTop:"1px solid #2a3049",flexWrap:"wrap",gap:8}}>
+          <button onClick={()=>{onDelete(r.id);onClose();}} style={{background:"none",border:"1px solid #5a1a1a",color:"#e05252",fontSize:13,padding:"7px 14px",borderRadius:7,cursor:"pointer"}}>🗑 Elimina</button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>onEdit(r)} style={{background:"none",border:"1px solid #2a3049",color:"#c9a84c",fontSize:13,padding:"7px 14px",borderRadius:7,cursor:"pointer"}}>✏️ Modifica</button>
+            <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:13,padding:"7px 14px",borderRadius:7,cursor:"pointer"}}>Chiudi</button>
+          </div>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+// ─── SCHEDA PDF ───────────────────────────────────────────────────────────────
+function schedaPDF(esercizio, interventi){
+  const oggi = new Date().toLocaleDateString("it-IT");
+
+  // Raccoglie tutti i titoli autorizzativi unici da tutti gli interventi
+  const tuttiTitoli = [...new Set(interventi.flatMap(r=>r.titoliAutorizzativi||[]))];
+  const tuttiRiferimenti = [...new Set(interventi.flatMap(r=>r.riferimenti||[]))];
+  const totViolazioni = interventi.reduce((s,r)=>s+(r.motivoControllo?.length||0),0);
+  const provAdottati = [...new Set(interventi.map(r=>r.provvedimento).filter(Boolean))];
+
+  const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Scheda — ${esercizio.nomeEsercizio}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;font-size:8.5pt;color:#000;background:#fff;padding:14px 18px}
+    h1{font-size:13pt;color:#1a3a6e;margin-bottom:2px}
+    .header{border-bottom:3px solid #1a3a6e;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start}
+    .header-sub{font-size:7.5pt;color:#555;margin-top:2px}
+    .header-right{text-align:right;font-size:7.5pt;color:#555;line-height:1.5}
+
+    .section{margin-bottom:10px}
+    .section-title{font-size:7pt;text-transform:uppercase;letter-spacing:.09em;color:#1a3a6e;font-weight:bold;border-bottom:1.5px solid #1a3a6e;padding-bottom:2px;margin-bottom:6px}
+
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 14px}
+    .field{margin-bottom:2px}
+    .field label{font-size:6.5pt;color:#777;display:block;margin-bottom:0;text-transform:uppercase;letter-spacing:.04em}
+    .field span{font-size:8.5pt;color:#000}
+    .field span b{color:#1a3a6e}
+
+    .tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+    .tag{border-radius:3px;padding:1px 6px;font-size:7pt;border:1px solid}
+    .tag-red{background:#fde8e8;border-color:#e05252;color:#8c1a1a}
+    .tag-blue{background:#e8f0fe;border-color:#3a6fa8;color:#1a3a6e}
+    .tag-gold{background:#fef9e7;border-color:#c9a84c;color:#7a5c00}
+    .tag-green{background:#e8f8f0;border-color:#2e8b57;color:#1a4d30}
+
+    .riepilogo-box{background:#f5f7fa;border:1px solid #d0d8e8;border-radius:4px;padding:6px 10px;margin-bottom:10px}
+
+    .intervento{border:1px solid #c0cce0;border-radius:4px;padding:7px 10px;margin-bottom:7px;page-break-inside:avoid}
+    .intervento:nth-child(odd){background:#fafbfd}
+    .int-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid #dde4f0}
+    .int-num{font-size:9.5pt;font-weight:bold;color:#1a3a6e}
+    .int-verbale{font-size:7pt;color:#555;background:#e8f0fe;border-radius:2px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+    .int-meta{font-size:7.5pt;color:#555;margin-top:1px}
+    .prov-badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:7.5pt;font-weight:bold}
+    .sub-label{font-size:6.5pt;color:#1a3a6e;font-weight:bold;margin-bottom:3px;margin-top:5px;text-transform:uppercase;letter-spacing:.05em}
+    .note-box{font-size:8pt;color:#222;margin-top:5px;padding:4px 8px;background:#fffbe6;border-left:2px solid #c9a84c;border-radius:0 3px 3px 0}
+    .note-box b{color:#7a5c00}
+
+    .footer{border-top:1px solid #ccc;padding-top:5px;margin-top:12px;font-size:6.5pt;color:#888;display:flex;justify-content:space-between}
+    @media print{
+      body{padding:10px 14px}
+      @page{margin:.8cm;size:A4}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- INTESTAZIONE -->
+  <div class="header">
+    <div>
+      <h1>Scheda Esercizio Commerciale</h1>
+      <div class="header-sub">Polizia Municipale di Napoli &nbsp;·&nbsp; Registro Controlli Commerciali</div>
+    </div>
+    <div class="header-right">
+      <b>${esercizio.nomeEsercizio||""}</b><br/>
+      Generato il ${oggi}<br/>
+      N. interventi: <b>${interventi.length}</b>
+    </div>
+  </div>
+
+  <!-- DATI ANAGRAFICI ESERCIZIO -->
+  <div class="section">
+    <div class="section-title">📋 Dati anagrafici esercizio</div>
+    <div class="grid2">
+      <div class="field"><label>Denominazione</label><span><b>${esercizio.nomeEsercizio||"—"}</b></span></div>
+      <div class="field"><label>Tipologia attività</label><span>${esercizio.tipo||"—"}</span></div>
+      <div class="field"><label>Indirizzo</label><span>${esercizio.indirizzo||"—"}</span></div>
+      <div class="field"><label>Titolare / Rappresentante legale</label><span>${esercizio.titolare||"—"}</span></div>
+      <div class="field"><label>Partita IVA / C.F.</label><span>${esercizio.piva||"—"}</span></div>
+    </div>
+  </div>
+
+  <!-- TITOLI AUTORIZZATIVI -->
+  <div class="section">
+    <div class="section-title">📄 Titoli autorizzativi verificati</div>
+    ${tuttiTitoli.length
+      ? `<div class="tags">${tuttiTitoli.map(t=>`<span class="tag tag-blue">${t}</span>`).join("")}</div>`
+      : `<span style="font-size:10pt;color:#777">Nessun titolo autorizzativo registrato</span>`}
+  </div>
+
+  <!-- RIEPILOGO CONTROLLI -->
+  <div class="riepilogo-box">
+    <div class="section-title" style="border-color:#a0b4d0;margin-bottom:10px">📊 Riepilogo controlli effettuati</div>
+    <div class="grid3">
+      <div class="field"><label>Numero interventi</label><span><b>${interventi.length}</b></span></div>
+      <div class="field"><label>Primo controllo</label><span>${fmt(interventi[interventi.length-1]?.data)||"—"}</span></div>
+      <div class="field"><label>Ultimo controllo</label><span>${fmt(interventi[0]?.data)||"—"}</span></div>
+      <div class="field"><label>Totale violazioni riscontrate</label><span style="color:${totViolazioni>0?"#8c1a1a":"#1a4d30"}"><b>${totViolazioni}</b></span></div>
+      <div class="field" style="grid-column:2/-1"><label>Provvedimenti adottati</label><span>${provAdottati.length ? provAdottati.map(p=>`<span class="tag tag-red" style="margin-right:4px">${p}</span>`).join("") : "Nessuno"}</span></div>
+    </div>
+    ${tuttiRiferimenti.length?`<div style="margin-top:10px"><div class="field"><label>Riferimenti normativi contestati</label><div class="tags">${tuttiRiferimenti.map(r=>`<span class="tag tag-gold">${r}</span>`).join("")}</div></div></div>`:""}
+  </div>
+
+  <!-- DETTAGLIO INTERVENTI -->
+  <div class="section">
+    <div class="section-title">🔍 Dettaglio interventi</div>
+
+    ${interventi.map((r,i)=>{
+      const provStyle = (p=>{ const l=(p||"").toLowerCase(); if(l.includes("denuncia")) return "background:#fde8e8;color:#8c1a1a"; if(l.includes("segnalazione")) return "background:#fef9e7;color:#7a5c00"; if(l.includes("diffida")) return "background:#e8f0fe;color:#1a3a6e"; return "background:#f0f0f0;color:#555"; })(r.provvedimento);
+      return `
+      <div class="intervento">
+        <div class="int-header">
+          <div>
+            <span class="int-num">Intervento ${interventi.length-i}</span>
+            ${r.numeroVerbale?`<span class="int-verbale">Verbale n. ${r.numeroVerbale}</span>`:""}
+            <div class="int-meta">
+              📅 ${fmt(r.data)}${r.ora?` &nbsp;ore ${r.ora}`:""} &nbsp;&nbsp;
+              👮 Agenti: <b>${(Array.isArray(r.agentiOp)&&r.agentiOp.length>0?r.agentiOp:(r.agentiOp?r.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(r._agenti?r._agenti.split(","):[r.creatoDA||"—"]))).join(", ")}</b>
+            </div>
+          </div>
+          ${r.provvedimento?`<span class="prov-badge" style="${provStyle}">${r.provvedimento}</span>`:`<span style="font-size:9pt;color:#888">Nessun provvedimento</span>`}
+        </div>
+
+        <div class="grid2" style="margin-bottom:6px">
+          <div class="field"><label>Motivo del controllo</label>
+            ${r.motivoControllo?.length
+              ? `<div class="tags">${r.motivoControllo.map(v=>`<span class="tag tag-gold">${v}</span>`).join("")}</div>`
+              : `<span style="font-size:10pt;color:#777">—</span>`}
+          </div>
+          <div class="field"><label>Violazioni riscontrate</label>
+            ${r.violazioniRiscontrate?.length
+              ? `<div class="tags">${r.violazioniRiscontrate.map(v=>`<span class="tag tag-red">${v}</span>`).join("")}</div>`
+              : `<span style="font-size:10pt;color:#2e8b57">✔ Nessuna violazione riscontrata</span>`}
+          </div>
+          <div class="field"><label>Titoli autorizzativi verificati in questo intervento</label>
+            ${r.titoliAutorizzativi?.length
+              ? `<div class="tags">${r.titoliAutorizzativi.map(t=>`<span class="tag tag-blue">${t}</span>`).join("")}</div>`
+              : `<span style="font-size:10pt;color:#777">—</span>`}
+          </div>
+        </div>
+
+        ${r.riferimenti?.length?`
+          <div class="sub-label">Riferimenti normativi</div>
+          <div class="tags">${r.riferimenti.map(ref=>`<span class="tag tag-gold">${ref}</span>`).join("")}</div>`:""}
+
+        ${r.note?`
+          <div class="note-box">
+            <b>Esiti del controllo:</b><br/>${r.note}
+          </div>`:""}
+      </div>`;
+    }).join("")}
+  </div>
+
+  <!-- AGENTI -->
+  <div class="section" style="margin-top:12px">
+    <div class="section-title">Agenti operanti</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+      ${[...new Set(interventi.map(r=>r._agenti||r.creatoDA||"").filter(Boolean))].flatMap(a=>a.split(",").map(s=>s.trim())).filter(Boolean).map(agente=>`<div style="min-width:180px"><div style="font-size:10.5pt;font-weight:bold;color:#1a3a6e;margin-bottom:10px">${agente}</div><div style="border-top:1px solid #555;padding-top:5px;font-size:8pt;color:#777">Firma</div></div>`).join("")}
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Polizia Municipale di Napoli — Registro Controlli Commerciali</span>
+    <span>Documento generato il ${oggi}</span>
+  </div>
+
+  <script>
+    window.onload = function(){ window.print(); };
+  <\/script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if(!win){ alert("Il browser ha bloccato la finestra popup.\nConsenti i popup per questo sito nelle impostazioni del browser, poi riprova."); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+function SchedaModal({esercizio,interventi,onClose,onPDF}){
+  const totV=interventi.reduce((s,r)=>s+(r.motivoControllo?.length||0),0);
+  const provSet=[...new Set(interventi.map(r=>r.provvedimento).filter(Boolean))];
+  return (
+    <Overlay onBgClick={onClose}>
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:680,padding:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div><div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>{esercizio.nomeEsercizio}</div><div style={{fontSize:12,color:"#7a859e",marginTop:3}}>{esercizio.indirizzo}{esercizio.tipo?` · ${esercizio.tipo}`:""}</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+          {[{label:"Interventi",value:interventi.length,color:"#c9a84c"},{label:"Violazioni",value:totV,color:"#e05252"},{label:"Provvedimenti",value:provSet.length,color:"#7eb8f7"}].map(s=>(
+            <div key={s.label} style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
+              <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:26,fontWeight:700,color:s.color}}>{s.value}</div>
+              <div style={{fontSize:11,color:"#7a859e",marginTop:2}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <SecTitle icon="📋" text={`${interventi.length} interventi`}/>
+        <div style={{maxHeight:360,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+          {interventi.map((r,i)=>(
+            <div key={r.id||i} style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:8,padding:"12px 14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                <div><div style={{fontWeight:600,fontSize:14}}>Intervento {interventi.length-i}{r.numeroVerbale&&<span style={{background:"#252d42",color:"#c9a84c",fontSize:11,padding:"1px 7px",borderRadius:4,marginLeft:8}}>n. {r.numeroVerbale}</span>}</div><div style={{fontSize:12,color:"#7a859e",marginTop:2}}>{fmt(r.data)}{r.ora?` ore ${r.ora}`:""}{(r._agenti||r.creatoDA)?` — ${r._agenti||r.creatoDA}`:""}</div></div>
+                {r.provvedimento&&<Badge label={r.provvedimento} fg={pCol(r.provvedimento)} bg={pBg(r.provvedimento)}/>}
+              </div>
+              {r.motivoControllo?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>{r.motivoControllo.map((v,j)=><Badge key={j} label={v} fg="#ff9090" bg="#3a1212"/>)}</div>}
+              {r.note&&<div style={{fontSize:12,color:"#7a859e",marginTop:5,fontStyle:"italic"}}>{r.note}</div>}
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",paddingTop:16,borderTop:"1px solid #2a3049"}}>
+          <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:13,padding:"8px 16px",borderRadius:7,cursor:"pointer"}}>Chiudi</button>
+          <button onClick={()=>{schedaPDF(esercizio,interventi);}} style={{background:"#c9a84c",color:"#0f1117",fontSize:13,fontWeight:700,padding:"8px 20px",border:"none",borderRadius:7,cursor:"pointer"}}>🖨️ Genera PDF</button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportCSV(records){
+  const h=["N. Verbale","Data","Ora","Esercizio","Indirizzo","Titolare","P.IVA","Tipo","Violazioni","Provvedimento","Note","Titoli Autorizzativi","Riferimenti","Agenti/Operatore"];
+  const rows=records.map(r=>[r.numeroVerbale||"",fmt(r.data),r.ora||"",r.nomeEsercizio,r.indirizzo,r.titolare||"",r.piva||"",r.tipo||"",(r.motivoControllo||[]).join(" | "),r.provvedimento||"",r.note||"",(r.titoliAutorizzativi||[]).join(" | "),(r.riferimenti||[]).join(" | "),r._agenti||r.creatoDA||""]);
+  const csv=[h,...rows].map(row=>row.map(c=>`"${String(c||"").replace(/"/g,'""')}"`).join(";")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`controlli_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+
+
+// ─── TARIFFARIO MODAL ────────────────────────────────────────────────────────
+function TariffarioModal({tariffario, onClose, onSave}){
+  const [voci, setVoci] = useState(tariffario.map(v=>({...v})));
+  const [nuovaVoce, setNuovaVoce] = useState("");
+  const [nuovoImporto, setNuovoImporto] = useState("");
+
+  const aggiorna = (id, field, val) => setVoci(prev => prev.map(v => v.id===id ? {...v,[field]:val} : v));
+  const elimina = id => setVoci(prev => prev.filter(v => v.id!==id));
+  const aggiungi = () => {
+    if(!nuovaVoce.trim() || !nuovoImporto) return;
+    const newId = Math.max(0,...voci.map(v=>v.id))+1;
+    setVoci(prev=>[...prev,{id:newId, voce:nuovaVoce.trim(), importo:parseFloat(nuovoImporto)||0}]);
+    setNuovaVoce(""); setNuovoImporto("");
+  };
+
+  return (
+    <Overlay onBgClick={onClose}>
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:14,width:"100%",maxWidth:600,padding:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22}}>
+          <div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:22,fontWeight:700}}>Tariffario sanzioni</div>
+            <div style={{fontSize:12,color:"#7a859e",marginTop:3}}>Importi predefiniti — modificabili in qualsiasi momento</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:24,lineHeight:1}}>×</button>
+        </div>
+
+        {/* Elenco voci */}
+        <div style={{maxHeight:360,overflowY:"auto",marginBottom:16}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{borderBottom:"2px solid #2a3049"}}>
+                <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"6px 8px",textAlign:"left",fontWeight:500}}>Voce di sanzione</th>
+                <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"6px 8px",textAlign:"right",fontWeight:500,width:120}}>Importo (€)</th>
+                <th style={{width:36}}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {voci.map(v=>(
+                <tr key={v.id} style={{borderBottom:"1px solid #2a3049"}}>
+                  <td style={{padding:"8px"}}>
+                    <input value={v.voce} onChange={e=>aggiorna(v.id,"voce",e.target.value)}
+                      style={{...INP,fontSize:13,padding:"5px 8px"}}/>
+                  </td>
+                  <td style={{padding:"8px"}}>
+                    <input type="number" value={v.importo} onChange={e=>aggiorna(v.id,"importo",parseFloat(e.target.value)||0)}
+                      style={{...INP,fontSize:13,padding:"5px 8px",textAlign:"right"}}/>
+                  </td>
+                  <td style={{padding:"8px",textAlign:"center"}}>
+                    <button onClick={()=>elimina(v.id)} style={{background:"none",border:"none",color:"#e05252",cursor:"pointer",fontSize:16}}>×</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Aggiungi nuova voce */}
+        <div style={{background:"#0f1117",border:"1px solid #2a3049",borderRadius:8,padding:14,marginBottom:16}}>
+          <div style={{fontSize:11,color:"#c9a84c",letterSpacing:"0.07em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>+ Aggiungi nuova voce</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 130px auto",gap:8,alignItems:"center"}}>
+            <input placeholder="Descrizione violazione / sanzione" value={nuovaVoce} onChange={e=>setNuovaVoce(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&aggiungi()}
+              style={{...INP,fontSize:13,padding:"7px 10px"}}/>
+            <input type="number" placeholder="Importo €" value={nuovoImporto} onChange={e=>setNuovoImporto(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&aggiungi()}
+              style={{...INP,fontSize:13,padding:"7px 10px"}}/>
+            <button onClick={aggiungi} style={{background:"#c9a84c",color:"#0f1117",border:"none",borderRadius:7,padding:"7px 14px",fontWeight:700,fontSize:13,cursor:"pointer",whiteSpace:"nowrap"}}>Aggiungi</button>
+          </div>
+        </div>
+
+        <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:14,borderTop:"1px solid #2a3049"}}>
+          <button onClick={onClose} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:14,padding:"8px 18px",borderRadius:7,cursor:"pointer"}}>Annulla</button>
+          <button onClick={()=>{onSave(voci);onClose();}} style={{background:"#c9a84c",color:"#0f1117",fontSize:14,fontWeight:700,padding:"8px 22px",border:"none",borderRadius:7,cursor:"pointer"}}>💾 Salva tariffario</button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+
+// ─── REPORT STATISTICHE PDF ───────────────────────────────────────────────────
+function generaStatsPDF(records, tariffario) {
+  const oggi = new Date().toLocaleDateString("it-IT");
+
+  // ── Calcoli ──
+  const perMese = {};
+  records.forEach(r => { if(!r.data) return; const [y,m]=r.data.split("-"); const k=`${y}-${m}`; perMese[k]=(perMese[k]||0)+1; });
+  const mesiSorted = Object.entries(perMese).sort(([a],[b])=>a.localeCompare(b));
+
+  const perEsercizio = {};
+  records.forEach(r => { const k=(r.nomeEsercizio||"—").trim(); perEsercizio[k]=(perEsercizio[k]||0)+1; });
+  const topEsercizi = Object.entries(perEsercizio).sort(([,a],[,b])=>b-a).slice(0,10);
+
+  const perProv = {};
+  records.forEach(r => { const k=r.provvedimento||"Nessuno"; perProv[k]=(perProv[k]||0)+1; });
+  const provList = Object.entries(perProv).sort(([,a],[,b])=>b-a);
+
+  const perTipo = {};
+  records.forEach(r => { const k=(r.tipo||"Non specificato").trim(); perTipo[k]=(perTipo[k]||0)+1; });
+  const tipoList = Object.entries(perTipo).sort(([,a],[,b])=>b-a).slice(0,8);
+
+  const perViol = {};
+  records.forEach(r => (r.violazioniRiscontrate||[]).forEach(v => { const k=v.trim(); perViol[k]=(perViol[k]||0)+1; }));
+  const topViol = Object.entries(perViol).sort(([,a],[,b])=>b-a).slice(0,10);
+
+  const perMotivo = {};
+  records.forEach(r => (r.motivoControllo||[]).forEach(v => { const k=v.trim(); perMotivo[k]=(perMotivo[k]||0)+1; }));
+  const topMotivi = Object.entries(perMotivo).sort(([,a],[,b])=>b-a).slice(0,8);
+
+  const perAgente = {};
+  records.forEach(r => {
+    const ags=Array.isArray(r.agentiOp)&&r.agentiOp.length>0?r.agentiOp:(r.agentiOp?r.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(r._agenti?r._agenti.split(",").map(s=>s.trim()).filter(Boolean):[r.creatoDA].filter(Boolean)));
+    ags.forEach(a=>{ perAgente[a]=(perAgente[a]||0)+1; });
+  });
+  const topAgenti = Object.entries(perAgente).sort(([,a],[,b])=>b-a).slice(0,10);
+
+  const calcolaSanzione = record => {
+    const voci = [...(record.violazioniRiscontrate||[]), ...(record.motivoControllo||[])];
+    let tot = 0;
+    voci.forEach(voce => {
+      const match = tariffario.find(t => voce.toLowerCase().includes(t.voce.toLowerCase()) || t.voce.toLowerCase().includes(voce.toLowerCase()));
+      if(match) tot += match.importo;
+    });
+    if(record.importoSanzione && parseFloat(record.importoSanzione)>0) return parseFloat(record.importoSanzione);
+    return tot;
+  };
+  const totSanzioni = records.reduce((s,r) => s+calcolaSanzione(r), 0);
+  const totViolazioni = records.reduce((s,r) => s+(r.violazioniRiscontrate?.length||0), 0);
+  const conViolazioni = records.filter(r => r.violazioniRiscontrate?.length>0).length;
+  const percViol = records.length>0 ? Math.round(conViolazioni/records.length*100) : 0;
+  const mesiLabel = k => { const [y,m]=k.split("-"); const n=["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]; return `${n[parseInt(m)]} ${y.slice(2)}`; };
+
+  // ── Barra HTML (valore/max → larghezza %) ──
+  const bar = (val, max, color="#1a3a6e") =>
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+       <div style="flex:1;height:7px;background:#e8edf5;border-radius:3px;overflow:hidden">
+         <div style="height:100%;width:${Math.round(val/max*100)}%;background:${color};border-radius:3px"></div>
+       </div>
+       <span style="font-size:8pt;font-weight:bold;color:${color};min-width:28px;text-align:right">${val}</span>
+     </div>`;
+
+  const tableRow = (label, val, max, color="#1a3a6e") =>
+    `<tr><td style="padding:4px 8px;font-size:8pt;color:#333;width:55%">${label}</td>
+         <td style="padding:4px 8px">${bar(val,max,color)}</td></tr>`;
+
+  const provColors = {"Denuncia":"#c0392b","Segnalazione uffici":"#d4961a","Diffida":"#2471a3","Verbalizzato":"#7d3c98","Nessuno":"#1e8449","Altro":"#666"};
+
+  // ── Analisi per mese (grafico a barre orizzontali) ──
+  const maxMese = Math.max(...mesiSorted.map(([,v])=>v),1);
+
+  const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Report Statistico — ${oggi}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;font-size:8.5pt;color:#000;background:#fff;padding:14px 18px}
+    h1{font-size:14pt;color:#1a3a6e;margin-bottom:2px}
+    .header{border-bottom:3px solid #1a3a6e;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start}
+    .header-right{text-align:right;font-size:7.5pt;color:#555;line-height:1.6}
+    .section{margin-bottom:14px;page-break-inside:avoid}
+    .section-title{font-size:7pt;text-transform:uppercase;letter-spacing:.09em;color:#1a3a6e;font-weight:bold;border-bottom:1.5px solid #1a3a6e;padding-bottom:2px;margin-bottom:8px}
+    .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+    .kpi-box{background:#f0f4fa;border:1px solid #c8d6ea;border-radius:5px;padding:8px 10px;text-align:center}
+    .kpi-val{font-size:18pt;font-weight:bold;color:#1a3a6e;line-height:1}
+    .kpi-val.green{color:#1e8449}
+    .kpi-val.red{color:#c0392b}
+    .kpi-val.orange{color:#d4961a}
+    .kpi-label{font-size:6.5pt;color:#555;margin-top:4px;line-height:1.3}
+    .sanzione-box{background:#e8f5ee;border:2px solid #1e8449;border-radius:5px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+    .sanzione-val{font-size:20pt;font-weight:bold;color:#1e8449;line-height:1}
+    .sanzione-label{font-size:8pt;color:#555;margin-top:3px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    table{width:100%;border-collapse:collapse}
+    th{font-size:7pt;text-transform:uppercase;letter-spacing:.06em;color:#555;padding:3px 8px;text-align:left;background:#f5f7fa;border-bottom:1px solid #dde4f0}
+    td{vertical-align:middle}
+    .month-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+    .month-label{font-size:7.5pt;width:50px;flex-shrink:0;color:#333}
+    .month-bar{flex:1;height:10px;background:#e8edf5;border-radius:3px;overflow:hidden}
+    .month-bar-fill{height:100%;background:#1a3a6e;border-radius:3px}
+    .month-val{font-size:7.5pt;font-weight:bold;color:#1a3a6e;min-width:20px;text-align:right}
+    .prov-pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:7pt;font-weight:bold;color:#fff;margin-right:3px}
+    .footer{border-top:1px solid #ccc;padding-top:6px;margin-top:14px;font-size:6.5pt;color:#888;display:flex;justify-content:space-between}
+    @media print{body{padding:10px 14px}@page{margin:.8cm;size:A4}}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Report Statistico — Controlli Commerciali</h1>
+    <div style="font-size:7.5pt;color:#555;margin-top:3px">Polizia Municipale di Napoli &nbsp;·&nbsp; U.O. San Lorenzo · Ufficio Polizia Amministrativa</div>
+  </div>
+  <div class="header-right">
+    Generato il <b>${oggi}</b><br/>
+    Periodo: ${mesiSorted.length>0?`${mesiLabel(mesiSorted[0][0])} → ${mesiLabel(mesiSorted[mesiSorted.length-1][0])}`:oggi}<br/>
+    Record analizzati: <b>${records.length}</b>
+  </div>
+</div>
+
+<!-- KPI -->
+<div class="kpi-grid">
+  <div class="kpi-box"><div class="kpi-val">${records.length}</div><div class="kpi-label">Totale controlli effettuati</div></div>
+  <div class="kpi-box"><div class="kpi-val">${Object.keys(perEsercizio).length}</div><div class="kpi-label">Esercizi controllati</div></div>
+  <div class="kpi-box"><div class="kpi-val red">${totViolazioni}</div><div class="kpi-label">Violazioni riscontrate</div></div>
+  <div class="kpi-box"><div class="kpi-val orange">${percViol}%</div><div class="kpi-label">Controlli con violazioni</div></div>
+  <div class="kpi-box"><div class="kpi-val">${Object.keys(perTipo).length}</div><div class="kpi-label">Tipologie di attività</div></div>
+</div>
+
+<!-- TOTALE SANZIONI -->
+<div class="sanzione-box stats-sanzione">
+  <div>
+    <div class="sanzione-val">${fmtEuro(totSanzioni)}</div>
+    <div class="sanzione-label">Totale sanzioni elevate nel periodo</div>
+  </div>
+  <div style="text-align:right;font-size:8pt;color:#555">
+    ${records.filter(r=>calcolaSanzione(r)>0).length} controlli con importo calcolato<br/>
+    Media per controllo sanzionato: <b>${records.filter(r=>calcolaSanzione(r)>0).length>0?fmtEuro(totSanzioni/records.filter(r=>calcolaSanzione(r)>0).length):"—"}</b>
+  </div>
+</div>
+
+<!-- TREND MENSILE -->
+${mesiSorted.length>0?`
+<div class="section">
+  <div class="section-title">📅 Andamento mensile controlli</div>
+  ${mesiSorted.map(([k,v])=>`
+    <div class="month-row">
+      <div class="month-label">${mesiLabel(k)}</div>
+      <div class="month-bar"><div class="month-bar-fill" style="width:${Math.round(v/maxMese*100)}%"></div></div>
+      <div class="month-val">${v}</div>
+    </div>`).join("")}
+</div>`:""}
+
+<div class="two-col">
+
+  <!-- PROVVEDIMENTI -->
+  <div class="section">
+    <div class="section-title">⚖️ Distribuzione provvedimenti</div>
+    <table>
+      <thead><tr><th>Provvedimento</th><th>N.</th><th>%</th></tr></thead>
+      <tbody>
+        ${provList.map(([p,n])=>`
+          <tr style="border-bottom:1px solid #eee">
+            <td style="padding:4px 8px;font-size:8pt">
+              <span class="prov-pill" style="background:${provColors[p]||"#999"}">${p}</span>
+            </td>
+            <td style="padding:4px 8px;font-size:8pt;font-weight:bold;color:${provColors[p]||"#333"}">${n}</td>
+            <td style="padding:4px 8px;font-size:7.5pt;color:#777">${Math.round(n/records.length*100)}%</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TIPOLOGIE ATTIVITÀ -->
+  <div class="section">
+    <div class="section-title">🏷️ Tipologia attività</div>
+    <table><tbody>
+      ${tipoList.map(([t,n])=>tableRow(t,n,tipoList[0][1],"#2471a3")).join("")}
+    </tbody></table>
+  </div>
+
+</div>
+
+<div class="two-col">
+
+  <!-- TOP ESERCIZI -->
+  <div class="section">
+    <div class="section-title">🏪 Esercizi con più interventi</div>
+    <table><tbody>
+      ${topEsercizi.map(([nome,n],i)=>tableRow(`${i+1}. ${nome}`,n,topEsercizi[0][1],"#1a3a6e")).join("")}
+    </tbody></table>
+  </div>
+
+  <!-- TOP VIOLAZIONI -->
+  <div class="section">
+    <div class="section-title">🚨 Violazioni più frequenti</div>
+    ${topViol.length===0
+      ? `<div style="font-size:8pt;color:#888">Nessuna violazione registrata</div>`
+      : `<table><tbody>${topViol.map(([v,n])=>tableRow(v,n,topViol[0][1],"#c0392b")).join("")}</tbody></table>`}
+  </div>
+
+</div>
+
+<div class="two-col">
+
+  <!-- MOTIVI CONTROLLO -->
+  <div class="section">
+    <div class="section-title">⚠️ Motivi di controllo</div>
+    ${topMotivi.length===0
+      ? `<div style="font-size:8pt;color:#888">Nessun motivo registrato</div>`
+      : `<table><tbody>${topMotivi.map(([m,n])=>tableRow(m,n,topMotivi[0][1],"#d4961a")).join("")}</tbody></table>`}
+  </div>
+
+  <!-- TOP AGENTI -->
+  <div class="section">
+    <div class="section-title">👮 Agenti più attivi</div>
+    <table><tbody>
+      ${topAgenti.map(([a,n],i)=>tableRow(`${i+1}. ${a}`,n,topAgenti[0][1],"#7d3c98")).join("")}
+    </tbody></table>
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Polizia Municipale di Napoli — Report Statistico Controlli Commerciali</span>
+  <span>Generato il ${oggi}</span>
+</div>
+
+<script>window.onload=function(){window.print()};<\/script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if(!win){ alert("Il browser ha bloccato il popup.\nConsenti i popup per questo sito, poi riprova."); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+// ─── STATISTICHE ─────────────────────────────────────────────────────────────
+function StatsView({records, tariffario, onOpenTariffario, onExportPDF}){
+  if(!records.length) return (
+    <div style={{textAlign:"center",padding:"64px 24px",color:"#7a859e"}}>
+      <div style={{fontSize:48,marginBottom:16}}>📊</div>
+      <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:20,color:"#e8e6df"}}>Nessun dato disponibile</div>
+      <div style={{fontSize:13,marginTop:6}}>Inserisci dei controlli per vedere le statistiche</div>
+    </div>
+  );
+
+  const perMese={};
+  records.forEach(r=>{ if(!r.data) return; const [y,m]=r.data.split("-"); const k=`${y}-${m}`; perMese[k]=(perMese[k]||0)+1; });
+  const mesiSorted=Object.entries(perMese).sort(([a],[b])=>a.localeCompare(b));
+  const maxMese=Math.max(...mesiSorted.map(([,v])=>v),1);
+
+  const perEsercizio={};
+  records.forEach(r=>{ const k=(r.nomeEsercizio||"—").trim(); perEsercizio[k]=(perEsercizio[k]||0)+1; });
+  const topEsercizi=Object.entries(perEsercizio).sort(([,a],[,b])=>b-a).slice(0,10);
+  const maxEsercizio=Math.max(...topEsercizi.map(([,v])=>v),1);
+
+  const perProv={};
+  records.forEach(r=>{ const k=r.provvedimento||"Nessuno"; perProv[k]=(perProv[k]||0)+1; });
+  const provList=Object.entries(perProv).sort(([,a],[,b])=>b-a);
+
+  const perTipo={};
+  records.forEach(r=>{ const k=(r.tipo||"Non specificato").trim(); perTipo[k]=(perTipo[k]||0)+1; });
+  const tipoList=Object.entries(perTipo).sort(([,a],[,b])=>b-a).slice(0,8);
+  const maxTipo=Math.max(...tipoList.map(([,v])=>v),1);
+
+  const perViol={};
+  records.forEach(r=>(r.violazioniRiscontrate||[]).forEach(v=>{ const k=v.trim(); perViol[k]=(perViol[k]||0)+1; }));
+  const topViol=Object.entries(perViol).sort(([,a],[,b])=>b-a).slice(0,8);
+  const maxViol=Math.max(...topViol.map(([,v])=>v),1);
+
+  const perMotivo={};
+  records.forEach(r=>(r.motivoControllo||[]).forEach(v=>{ const k=v.trim(); perMotivo[k]=(perMotivo[k]||0)+1; }));
+  const topMotivi=Object.entries(perMotivo).sort(([,a],[,b])=>b-a).slice(0,6);
+  const maxMotivo=Math.max(...topMotivi.map(([,v])=>v),1);
+
+  const perAgente={};
+  records.forEach(r=>{
+    const ags=Array.isArray(r.agentiOp)&&r.agentiOp.length>0?r.agentiOp:(r.agentiOp?r.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(r._agenti?r._agenti.split(",").map(s=>s.trim()).filter(Boolean):[r.creatoDA].filter(Boolean)));
+    ags.forEach(a=>{ perAgente[a]=(perAgente[a]||0)+1; });
+  });
+  const topAgenti=Object.entries(perAgente).sort(([,a],[,b])=>b-a).slice(0,8);
+  const maxAgente=Math.max(...topAgenti.map(([,v])=>v),1);
+
+  const totViolazioni=records.reduce((s,r)=>s+(r.violazioniRiscontrate?.length||0),0);
+  const conViolazioni=records.filter(r=>r.violazioniRiscontrate?.length>0).length;
+  const percViolazioni=records.length>0?Math.round(conViolazioni/records.length*100):0;
+
+  const Card=({title,children})=>(
+    <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:12,padding:20}}>
+      <div style={{fontSize:11,color:"#c9a84c",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:600,marginBottom:16,paddingBottom:8,borderBottom:"1px solid #2a3049"}}>{title}</div>
+      {children}
+    </div>
+  );
+
+  const BarRow=({label,value,max,color="#c9a84c"})=>(
+    <div style={{marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:12}}>
+        <span style={{color:"#e8e6df",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"80%"}}>{label}</span>
+        <span style={{color:color,fontWeight:600,flexShrink:0,marginLeft:8}}>{value}</span>
+      </div>
+      <div style={{height:6,background:"#0f1117",borderRadius:3,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${Math.round(value/max*100)}%`,background:color,borderRadius:3}}></div>
+      </div>
+    </div>
+  );
+
+  const provColors={"Denuncia":"#e05252","Segnalazione uffici":"#c9a84c","Diffida":"#7eb8f7","Verbalizzato":"#b07af7","Nessuno":"#52b788","Altro":"#7a859e"};
+  const mesiLabel=k=>{ const [y,m]=k.split("-"); const n=["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]; return `${n[parseInt(m)]} ${y.slice(2)}`; };
+
+  // Calcolo sanzioni economiche
+  const calcolaSanzione = (record) => {
+    let tot = 0;
+    const vociRecord = [...(record.violazioniRiscontrate||[]), ...(record.motivoControllo||[])];
+
+    // Estrae le parole chiave significative da una stringa (ignora negazioni e parole vuote)
+    const keywords = str => str.toLowerCase()
+      .replace(/\b(mancante|mancanza|assenza|senza|no|non|di|del|della|il|la|lo|e|è|in|per|da|con|su)\b/g," ")
+      .split(/\s+/).map(s=>s.trim()).filter(s=>s.length>=3);
+
+    vociRecord.forEach(voce => {
+      const voceLow = voce.toLowerCase();
+      const match = tariffario.find(t => {
+        const tLow = t.voce.toLowerCase();
+        // Match diretto
+        if(voceLow.includes(tLow) || tLow.includes(voceLow)) return true;
+        // Match per parole chiave: almeno 1 keyword significativa in comune
+        const kwVoce = keywords(voceLow);
+        const kwTarif = keywords(tLow);
+        return kwTarif.some(k => kwVoce.some(v => v.includes(k) || k.includes(v)));
+      });
+      if(match) tot += match.importo;
+    });
+    // Sanzione manuale aggiuntiva (sovrascrive il calcolo automatico se presente)
+    return tot;
+  };
+  const totSanzioni = records.reduce((s,r)=>s+calcolaSanzione(r),0);
+  const recordConSanzione = records.filter(r=>calcolaSanzione(r)>0);
+  const topSanzioni = [...records].map(r=>({...r,_sanzione:calcolaSanzione(r)})).filter(r=>r._sanzione>0).sort((a,b)=>b._sanzione-a._sanzione).slice(0,8);
+
+  return (
+    <div className="no-print stats-view-wrap" style={{padding:"0 24px 48px"}}>
+      {/* Header statistiche con bottone tariffario */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontSize:11,color:"#7a859e",letterSpacing:"0.06em"}}>Dati aggiornati in tempo reale · {records.length} record analizzati</div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={onExportPDF} style={{background:"#c9a84c",color:"#0f1117",fontSize:12,fontWeight:700,padding:"6px 14px",borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",gap:6,border:"none"}}>
+            🖨️ Esporta report PDF
+          </button>
+          <button onClick={onOpenTariffario} style={{background:"none",border:"1px solid #c9a84c50",color:"#c9a84c",fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+            ⚙️ Tariffario sanzioni
+          </button>
+        </div>
+      </div>
+
+      {/* KPI principali */}
+      <div className="stats-kpi-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:12}}>
+        {[
+          {label:"Totale controlli",value:records.length,color:"#c9a84c",icon:"📋"},
+          {label:"Esercizi unici",value:Object.keys(perEsercizio).length,color:"#7eb8f7",icon:"🏪"},
+          {label:"% controlli con violazioni",value:`${percViolazioni}%`,color:"#f7a052",icon:"⚠️"},
+        ].map(s=>(
+          <div key={s.label} style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:10,padding:"16px 18px"}}>
+            <div style={{fontSize:18,marginBottom:6}}>{s.icon}</div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:28,fontWeight:700,color:s.color,lineHeight:1}}>{s.value}</div>
+            <div style={{fontSize:11,color:"#7a859e",marginTop:5,lineHeight:1.4}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* KPI sanzioni — in evidenza */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20}}>
+        <div style={{background:"linear-gradient(135deg,#1e2a1a,#181c27)",border:"2px solid #52b78840",borderRadius:10,padding:"18px 20px",gridColumn:"1/3"}}>
+          <div style={{fontSize:11,color:"#52b788",letterSpacing:"0.07em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>💰 Totale sanzioni elevate</div>
+          <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:36,fontWeight:700,color:"#52b788",lineHeight:1}}>{fmtEuro(totSanzioni)}</div>
+          <div style={{fontSize:12,color:"#7a859e",marginTop:6}}>su {recordConSanzione.length} controlli con importo calcolato</div>
+        </div>
+        <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:10,padding:"16px 18px"}}>
+          <div style={{fontSize:18,marginBottom:6}}>🚨</div>
+          <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:28,fontWeight:700,color:"#e05252",lineHeight:1}}>{totViolazioni}</div>
+          <div style={{fontSize:11,color:"#7a859e",marginTop:5,lineHeight:1.4}}>Violazioni totali riscontrate</div>
+        </div>
+      </div>
+
+      <div className="stats-two-col" style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:14}}>
+        <Card title="📅 Controlli per mese">
+          {mesiSorted.length===0?<span style={{fontSize:13,color:"#7a859e"}}>Nessun dato</span>
+          :<div style={{overflowX:"auto"}}>
+            <div style={{display:"flex",alignItems:"flex-end",gap:6,minHeight:140,paddingBottom:22,minWidth:mesiSorted.length*48}}>
+              {mesiSorted.map(([k,v])=>(
+                <div key={k} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flex:1,minWidth:40}}>
+                  <div style={{fontSize:11,color:"#c9a84c",fontWeight:600}}>{v}</div>
+                  <div style={{width:"100%",background:"linear-gradient(180deg,#c9a84c,#8a6f2e)",borderRadius:"4px 4px 0 0",height:`${Math.round(v/maxMese*100)}px`,minHeight:4}}></div>
+                  <div style={{fontSize:10,color:"#7a859e",textAlign:"center",whiteSpace:"nowrap",transform:"rotate(-30deg)",transformOrigin:"top center",marginTop:4}}>{mesiLabel(k)}</div>
+                </div>
+              ))}
+            </div>
+          </div>}
+        </Card>
+
+        <Card title="⚖️ Provvedimenti adottati">
+          {provList.map(([p,n])=>{
+            const col=provColors[p]||"#7a859e";
+            const pct=Math.round(n/records.length*100);
+            return (
+              <div key={p} style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:12}}>
+                  <span style={{color:"#e8e6df"}}>{p}</span>
+                  <span style={{color:col,fontWeight:600}}>{n} <span style={{color:"#7a859e",fontWeight:400,fontSize:11}}>({pct}%)</span></span>
+                </div>
+                <div style={{height:6,background:"#0f1117",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${pct}%`,background:col,borderRadius:3}}></div>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      </div>
+
+      <div className="stats-two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+        <Card title="🏪 Top 10 esercizi per numero di interventi">
+          {topEsercizi.map(([nome,n],i)=>(
+            <BarRow key={nome} label={`${i+1}. ${nome}`} value={n} max={maxEsercizio} color="#7eb8f7"/>
+          ))}
+        </Card>
+        <Card title="🏷️ Distribuzione tipologia attività">
+          {tipoList.map(([tipo,n])=>(
+            <BarRow key={tipo} label={tipo} value={n} max={maxTipo} color="#52b788"/>
+          ))}
+        </Card>
+      </div>
+
+      {/* Top sanzioni per esercizio */}
+      {topSanzioni.length>0&&(
+        <div style={{marginBottom:14}}>
+          <Card title="💰 Top sanzioni per esercizio">
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 20px"}}>
+              {topSanzioni.map((r,i)=>(
+                <div key={r.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #2a3049"}}>
+                  <div style={{fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"65%"}}>
+                    <span style={{color:"#7a859e",marginRight:6}}>{i+1}.</span>{r.nomeEsercizio}
+                    <div style={{fontSize:10,color:"#7a859e"}}>{fmt(r.data)}</div>
+                  </div>
+                  <div style={{color:"#52b788",fontWeight:700,fontSize:13,flexShrink:0}}>{fmtEuro(r._sanzione)}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <div className="stats-three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
+        <Card title="🚨 Violazioni riscontrate più frequenti">
+          {topViol.length===0
+            ?<span style={{fontSize:13,color:"#7a859e"}}>Nessuna violazione registrata</span>
+            :topViol.map(([v,n])=>{ const c=violColor(v); return <BarRow key={v} label={v} value={n} max={maxViol} color={c.fg}/>; })
+          }
+        </Card>
+        <Card title="⚠️ Motivi di controllo più frequenti">
+          {topMotivi.length===0
+            ?<span style={{fontSize:13,color:"#7a859e"}}>Nessun motivo registrato</span>
+            :topMotivi.map(([m,n])=><BarRow key={m} label={m} value={n} max={maxMotivo} color="#c9a84c"/>)
+          }
+        </Card>
+        <Card title="👮 Agenti più attivi">
+          {topAgenti.length===0
+            ?<span style={{fontSize:13,color:"#7a859e"}}>Nessun agente registrato</span>
+            :topAgenti.map(([a,n])=>(
+              <div key={a} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:hCol(a),color:"#0f1117",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0}}>{ini(a)}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a}</span>
+                    <span style={{color:"#b07af7",fontWeight:600,flexShrink:0,marginLeft:6}}>{n}</span>
+                  </div>
+                  <div style={{height:5,background:"#0f1117",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.round(n/maxAgente*100)}%`,background:"#b07af7",borderRadius:3}}></div>
+                  </div>
+                </div>
+              </div>
+            ))
+          }
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── REPORT RA MENSILE ────────────────────────────────────────────────────────
+function ReportRAView({records}){
+  // Mesi disponibili dai dati
+  const mesiDisponibili = [...new Set(records.filter(r=>r.data).map(r=>r.data.slice(0,7)))].sort().reverse();
+  const [mese,setMese] = useState(mesiDisponibili[0]||"");
+  const [correzioni,setCorrezioni] = useState({}); // {regolaId: {controlli: n, violazioni: n}}
+
+  const mesiNomi = ["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  const labelMese = m => { if(!m) return "—"; const [y,mm]=m.split("-"); return `${mesiNomi[parseInt(mm)]} ${y}`; };
+
+  // Record del mese selezionato
+  const recordsMese = records.filter(r=>r.data && r.data.slice(0,7)===mese);
+
+  // Calcola conteggi automatici per ogni voce
+  const conteggi = REGOLE_RA.map(regola=>{
+    const recordsVoce = recordsMese.filter(r=>recordInVoceRA(r,regola));
+    const nControlli = recordsVoce.length;
+    const nViolazioni = recordsMese.reduce((s,r)=>s+violazioniInVoceRA(r,regola),0);
+    const corr = correzioni[regola.id]||{};
+    return {
+      ...regola,
+      autoControlli: nControlli,
+      autoViolazioni: nViolazioni,
+      controlli: corr.controlli!==undefined?corr.controlli:nControlli,
+      violazioni: corr.violazioni!==undefined?corr.violazioni:nViolazioni,
+      records: recordsVoce,
+    };
+  });
+
+  const setCorr = (id, field, val) => {
+    setCorrezioni(prev=>({...prev,[id]:{...prev[id],[field]:val===""?undefined:parseInt(val)||0}}));
+  };
+
+  const resetCorr = () => setCorrezioni({});
+
+  // Genera PDF del report
+  const generaPDF = () => {
+    const oggi = new Date().toLocaleDateString("it-IT");
+    const html = `<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"/>
+<title>Report RA — ${labelMese(mese)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:9pt;color:#000;background:#fff;padding:16px 20px}
+h1{font-size:14pt;color:#1a3a6e;margin-bottom:2px}
+.header{border-bottom:3px solid #1a3a6e;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th{background:#1a3a6e;color:#fff;font-size:8pt;text-transform:uppercase;letter-spacing:.05em;padding:6px 10px;text-align:left}
+th.num{text-align:center;width:90px}
+td{padding:5px 10px;border-bottom:1px solid #ddd;font-size:9pt}
+td.num{text-align:center;font-weight:bold}
+tr:nth-child(even){background:#f5f7fa}
+.corretto{color:#c0392b}
+.footer{border-top:1px solid #ccc;padding-top:6px;margin-top:14px;font-size:7pt;color:#888;display:flex;justify-content:space-between}
+@media print{@page{margin:1cm;size:A4}}
+</style></head><body>
+<div class="header">
+  <div>
+    <h1>Report Attività — Sezione Commercio</h1>
+    <div style="font-size:8pt;color:#555;margin-top:3px">Polizia Municipale di Napoli · U.O. San Lorenzo · Ufficio Polizia Amministrativa</div>
+  </div>
+  <div style="text-align:right;font-size:8pt;color:#555">
+    Periodo: <b style="font-size:11pt;color:#1a3a6e">${labelMese(mese)}</b><br/>
+    Generato il ${oggi}<br/>
+    ${recordsMese.length} controlli nel mese
+  </div>
+</div>
+<table>
+  <thead><tr><th>Voce Report RA</th><th class="num">N° Controlli</th><th class="num">N° Violazioni</th></tr></thead>
+  <tbody>
+    ${conteggi.map(c=>{
+      const cCorr = c.controlli!==c.autoControlli;
+      const vCorr = c.violazioni!==c.autoViolazioni;
+      return `<tr>
+        <td>${c.voce}</td>
+        <td class="num ${cCorr?"corretto":""}">${c.controlli}${cCorr?` <span style="font-size:7pt">(auto: ${c.autoControlli})</span>`:""}</td>
+        <td class="num ${vCorr?"corretto":""}">${c.violazioni}${vCorr?` <span style="font-size:7pt">(auto: ${c.autoViolazioni})</span>`:""}</td>
+      </tr>`;
+    }).join("")}
+  </tbody>
+</table>
+<div class="footer">
+  <span>I valori in rosso sono stati corretti manualmente rispetto al conteggio automatico</span>
+  <span>Generato il ${oggi}</span>
+</div>
+<script>window.onload=function(){window.print()};<\/script>
+</body></html>`;
+    const win = window.open("","_blank");
+    if(!win){ alert("Popup bloccato. Consenti i popup per questo sito."); return; }
+    win.document.write(html);
+    win.document.close();
+  };
+
+  if(!records.length) return (
+    <div style={{textAlign:"center",padding:"64px 24px",color:"#7a859e"}}>
+      <div style={{fontSize:48,marginBottom:16}}>📄</div>
+      <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:20,color:"#e8e6df"}}>Nessun dato disponibile</div>
+    </div>
+  );
+
+  return (
+    <div className="no-print stats-view-wrap" style={{padding:"0 24px 48px"}}>
+      {/* Header con selettore mese */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <span style={{fontSize:12,color:"#7a859e"}}>Mese:</span>
+          <select value={mese} onChange={e=>{setMese(e.target.value);setCorrezioni({});}}
+            style={{...INP,width:"auto",cursor:"pointer",fontWeight:600,fontSize:14,padding:"8px 14px"}}>
+            {mesiDisponibili.map(m=><option key={m} value={m}>{labelMese(m)}</option>)}
+          </select>
+          <span style={{background:"#252d42",color:"#c9a84c",fontSize:12,padding:"4px 12px",borderRadius:999,fontWeight:600}}>
+            {recordsMese.length} controlli nel mese
+          </span>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          {Object.keys(correzioni).length>0&&(
+            <button onClick={resetCorr} style={{background:"none",border:"1px solid #e0525260",color:"#e05252",fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:7,cursor:"pointer"}}>
+              ↺ Azzera correzioni
+            </button>
+          )}
+          <button onClick={generaPDF} style={{background:"#c9a84c",color:"#0f1117",fontSize:12,fontWeight:700,padding:"6px 16px",borderRadius:7,cursor:"pointer",border:"none"}}>
+            🖨️ Stampa report
+          </button>
+        </div>
+      </div>
+
+      {/* Info box */}
+      <div style={{background:"#1a2640",border:"1px solid #7eb8f740",borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#7eb8f7",lineHeight:1.6}}>
+        💡 Un singolo controllo può contare in <b>più voci contemporaneamente</b> (es. un vicinato alimentare vale come Sede fissa + Vicinato + Leggi Sanitarie + Leggi regionali). I conteggi sono automatici ma <b>modificabili</b>: clicca sul numero per correggerlo prima della stampa.
+      </div>
+
+      {/* Tabella voci */}
+      <div style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:12,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{background:"#0f1117",borderBottom:"2px solid #2a3049"}}>
+              <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"10px 16px",textAlign:"left",fontWeight:500}}>Voce Report RA</th>
+              <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"10px 12px",textAlign:"center",fontWeight:500,width:120}}>N° Controlli</th>
+              <th style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"10px 12px",textAlign:"center",fontWeight:500,width:120}}>N° Violazioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {conteggi.map((c,i)=>{
+              const cCorr = c.controlli!==c.autoControlli;
+              const vCorr = c.violazioni!==c.autoViolazioni;
+              const hasData = c.controlli>0||c.violazioni>0||c.autoControlli>0;
+              return (
+                <tr key={c.id} style={{borderBottom:"1px solid #2a3049",background:i%2===0?"transparent":"#1a1e2a",opacity:hasData?1:0.45}}>
+                  <td style={{padding:"9px 16px",fontSize:13}}>
+                    {c.voce}
+                    {c.autoControlli>0&&(
+                      <div style={{fontSize:10,color:"#7a859e",marginTop:2}}>
+                        {c.records.slice(0,3).map(r=>r.nomeEsercizio).join(" · ")}{c.records.length>3?` · +${c.records.length-3} altri`:""}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{padding:"9px 12px",textAlign:"center"}}>
+                    <input type="number" min="0" value={c.controlli}
+                      onChange={e=>setCorr(c.id,"controlli",e.target.value)}
+                      style={{...INP,width:70,textAlign:"center",fontWeight:700,fontSize:14,padding:"5px",
+                        color:cCorr?"#e05252":"#c9a84c",
+                        borderColor:cCorr?"#e0525260":"#2a3049"}}/>
+                    {cCorr&&<div style={{fontSize:9,color:"#7a859e",marginTop:2}}>auto: {c.autoControlli}</div>}
+                  </td>
+                  <td style={{padding:"9px 12px",textAlign:"center"}}>
+                    <input type="number" min="0" value={c.violazioni}
+                      onChange={e=>setCorr(c.id,"violazioni",e.target.value)}
+                      style={{...INP,width:70,textAlign:"center",fontWeight:700,fontSize:14,padding:"5px",
+                        color:vCorr?"#e05252":"#e8e6df",
+                        borderColor:vCorr?"#e0525260":"#2a3049"}}/>
+                    {vCorr&&<div style={{fontSize:9,color:"#7a859e",marginTop:2}}>auto: {c.autoViolazioni}</div>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App(){
+  const [phase,setPhase]=useState("loading");
+  const [operatore,setOperatore]=useState(null);
+  const [records,setRecords]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [view,setView]=useState("lista");
+  const [tariffario,setTariffario]=useState(()=>{
+    try{ const s=localStorage.getItem(TARIFFARIO_KEY); return s?JSON.parse(s):DEFAULT_TARIFFARIO; }
+    catch(_){ return DEFAULT_TARIFFARIO; }
+  });
+  const [showTariffario,setShowTariffario]=useState(false);
+  const saveTariffario=t=>{ setTariffario(t); localStorage.setItem(TARIFFARIO_KEY,JSON.stringify(t)); };
+  const [showAdd,setShowAdd]=useState(false);
+  const [showImport,setShowImport]=useState(false);
+  const [editing,setEditing]=useState(null);
+  const [detail,setDetail]=useState(null);
+  const [scheda,setScheda]=useState(null);
+  const [confirm,setConfirm]=useState(null);
+  const [search,setSearch]=useState("");
+  const [filterProv,setFilterProv]=useState("");
+  const [filterTag,setFilterTag]=useState("");
+  const [filterTipo,setFilterTipo]=useState(""); // 'commerciale' | 'ricettiva' | ''
+  const [sortBy,setSortBy]=useState("data");
+  const [sortDir,setSortDir]=useState("desc");
+  const dbRef=useRef(null);
+
+  useEffect(()=>{
+    const cfg=localStorage.getItem(CFG_KEY); const op=sessionStorage.getItem(OP_KEY);
+    if(cfg){ try{ const p=JSON.parse(cfg); try{firebase.app();}catch(_){firebase.initializeApp(p);} dbRef.current=firebase.firestore(); if(op){setOperatore(JSON.parse(op));setPhase("app");}else setPhase("login"); }catch(_){setPhase("setup");} }
+    else setPhase("setup");
+  },[]);
+
+  useEffect(()=>{
+    if(phase!=="app"||!dbRef.current) return;
+    setLoading(true);
+    const unsub=dbRef.current.collection(COLL).orderBy("creatoIl","desc").onSnapshot(snap=>{setRecords(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false);},()=>setLoading(false));
+    return ()=>unsub();
+  },[phase]);
+
+  const handleSetup=cfg=>{ try{firebase.app();}catch(_){firebase.initializeApp(cfg);} dbRef.current=firebase.firestore(); setPhase("login"); };
+  const handleLogin=(nome,matricola)=>{ const op={nome,matricola}; sessionStorage.setItem(OP_KEY,JSON.stringify(op)); setOperatore(op); setPhase("app"); setTimeout(()=>{ if(dbRef.current) dbRef.current.collection(COLL_LOG).add({azione:"login",dettaglio:"Accesso effettuato",operatore:nome,matricola:matricola||"",timestamp:firebase.firestore.FieldValue.serverTimestamp()}); },500); };
+  const [showOperatori,setShowOperatori]=useState(false);
+  const [showLog,setShowLog]=useState(false);
+  const [fixingDates,setFixingDates]=useState(false);
+
+  // Correzione di massa: normalizza tutte le date nel formato standard
+  const correggiDate = async () => {
+    if(fixingDates) return;
+    // Analizza prima quanti record hanno date da correggere
+    const daCorreggere = records.filter(r=>{
+      const norm = normalizzaData(r.data);
+      return norm && norm !== r.data;
+    });
+    const nonRiconosciute = records.filter(r=>r.data && !normalizzaData(r.data));
+
+    if(daCorreggere.length===0 && nonRiconosciute.length===0){
+      alert("✅ Tutte le date sono già nel formato corretto!");
+      return;
+    }
+
+    let msg = `Trovate ${daCorreggere.length} date da correggere.\n\n`;
+    if(daCorreggere.length>0){
+      msg += "Esempi:\n" + daCorreggere.slice(0,5).map(r=>`• ${r.nomeEsercizio}: "${r.data}" → "${normalizzaData(r.data)}"`).join("\n");
+    }
+    if(nonRiconosciute.length>0){
+      msg += `\n\n⚠️ ${nonRiconosciute.length} date NON riconoscibili (verranno lasciate invariate):\n` + nonRiconosciute.slice(0,3).map(r=>`• ${r.nomeEsercizio}: "${r.data}"`).join("\n");
+    }
+    msg += "\n\nProcedere con la correzione?";
+
+    if(!window.confirm(msg)) return;
+
+    setFixingDates(true);
+    try {
+      const batch = dbRef.current.batch();
+      daCorreggere.forEach(r=>{
+        const ref = dbRef.current.collection(COLL).doc(r.id);
+        batch.update(ref, {data: normalizzaData(r.data)});
+      });
+      await batch.commit();
+      logAzione("modifica",`Correzione di massa formato date: ${daCorreggere.length} record uniformati`);
+      alert(`✅ Corrette ${daCorreggere.length} date!\nOra tutte le date sono nel formato uniforme e verranno mostrate come GG/MM/AAAA.`);
+    } catch(e){
+      alert("❌ Errore durante la correzione. Riprova.");
+    }
+    setFixingDates(false);
+  };
+  const [menuOpen,setMenuOpen]=useState(false);
+  const isMobile = typeof window!=="undefined" && window.innerWidth<=768;
+
+  // Funzione di logging centralizzata
+  const logAzione = React.useCallback(async (azione, dettaglio="") => {
+    if(!dbRef.current || !operatore) return;
+    try {
+      await dbRef.current.collection(COLL_LOG).add({
+        azione, dettaglio,
+        operatore: operatore.nome,
+        matricola: operatore.matricola||"",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch(_){}
+  },[operatore]);
+
+  const handleSave=async f=>{
+    const now=firebase.firestore.FieldValue.serverTimestamp();
+    if(editing){
+      await dbRef.current.collection(COLL).doc(editing.id).update({...f,modificatoDa:operatore.nome,modificatoIl:now});
+      logAzione("modifica",`Modificato: ${f.nomeEsercizio} — ${fmt(f.data)}`);
+      setEditing(null);
+    } else {
+      await dbRef.current.collection(COLL).add({...f,creatoDA:operatore.nome,creatoMatricola:operatore.matricola||"",creatoIl:now});
+      logAzione("inserimento",`Inserito: ${f.nomeEsercizio} — ${fmt(f.data)}`);
+    }
+    setShowAdd(false);
+  };
+
+  const handleImport=async rows=>{
+    const now=firebase.firestore.FieldValue.serverTimestamp();
+    const batch=dbRef.current.batch();
+    rows.forEach(r=>{
+      const {_agenti,...rest}=r;
+      const ref=dbRef.current.collection(COLL).doc();
+      batch.set(ref,{...rest,_agenti:_agenti||"",creatoDA:operatore.nome,creatoMatricola:operatore.matricola||"",creatoIl:now});
+    });
+    await batch.commit();
+    logAzione("importazione",`Importati ${rows.length} record da file Excel`);
+  };
+
+  const handleDelete=async id=>{ const r=records.find(x=>x.id===id); await dbRef.current.collection(COLL).doc(id).delete(); logAzione("eliminazione",`Eliminato: ${r?.nomeEsercizio||"—"} — ${fmt(r?.data)}`); setConfirm(null); };
+
+  const gruppi=records.reduce((acc,r)=>{
+    const key=(r.nomeEsercizio||"").trim().toLowerCase(); if(!key) return acc;
+    if(!acc[key]) acc[key]={nomeEsercizio:r.nomeEsercizio,indirizzo:r.indirizzo,titolare:r.titolare,piva:r.piva,tipo:r.tipo,interventi:[]};
+    acc[key].interventi.push(r); return acc;
+  },{});
+  const gruppiList=Object.values(gruppi).sort((a,b)=>b.interventi.length-a.interventi.length);
+
+  const filtered=records.filter(r=>{
+    const q=search.toLowerCase();
+    const mq=!q||(()=>{
+      const ags=Array.isArray(r.agentiOp)?r.agentiOp.join(" "):(r.agentiOp||r._agenti||"");
+      return [r.nomeEsercizio,r.indirizzo,r.legaleRappresentante||r.titolare||"",r.ragioneSociale||"",r.tipo||"",r.tipoAttivita||"",r.creatoDA||"",ags].some(s=>s.toLowerCase().includes(q));
+    })();
+    const mp=!filterProv||r.provvedimento===filterProv;
+    const mt=!filterTag||(()=>{ const cat=CATEGORIE_TAG.find(c=>c.id===filterTag); return cat?recordInCategoria(r,cat):true; })();
+    const mTipo=!filterTipo||(filterTipo==='commerciale'?r.tipoAttivita==="Attività Commerciale":r.tipoAttivita==="Attività Ricettiva Extralberghiera");
+    return mq&&mp&&mt&&mTipo;
+  });
+
+  // Ordinamento
+  const sortedFiltered = [...filtered].sort((a,b)=>{
+    let va,vb;
+    if(sortBy==="data")       { va=a.data||""; vb=b.data||""; }
+    else if(sortBy==="nome")  { va=(a.nomeEsercizio||"").toLowerCase(); vb=(b.nomeEsercizio||"").toLowerCase(); }
+    else if(sortBy==="titolare"){ va=(a.titolare||"").toLowerCase(); vb=(b.titolare||"").toLowerCase(); }
+    else if(sortBy==="provvedimento"){ va=(a.provvedimento||"").toLowerCase(); vb=(b.provvedimento||"").toLowerCase(); }
+    else if(sortBy==="tipo_att"){ va=(a.tipoAttivita||"").toLowerCase(); vb=(b.tipoAttivita||"").toLowerCase(); }
+    else if(sortBy==="violazioni"){ va=a.violazioniRiscontrate?.length||0; vb=b.violazioniRiscontrate?.length||0; }
+    else { va=""; vb=""; }
+    if(va<vb) return sortDir==="asc"?-1:1;
+    if(va>vb) return sortDir==="asc"?1:-1;
+    return 0;
+  });
+
+  const toggleSort = col => {
+    if(sortBy===col) setSortDir(d=>d==="asc"?"desc":"asc");
+    else { setSortBy(col); setSortDir("asc"); }
+  };
+
+  const SortIcon = ({col}) => {
+    if(sortBy!==col) return <span style={{color:"#3a4a6a",marginLeft:3}}>⇅</span>;
+    return <span style={{color:"#c9a84c",marginLeft:3}}>{sortDir==="asc"?"↑":"↓"}</span>;
+  };
+
+  const totViol=records.reduce((s,r)=>s+(r.motivoControllo?.length||0),0);
+  const denunce=records.filter(r=>r.provvedimento?.toLowerCase().includes("denuncia")).length;
+  const cut=new Date(); cut.setMonth(cut.getMonth()-1);
+  const ultimoMese=records.filter(r=>r.data&&new Date(r.data)>=cut).length;
+
+  if(phase==="loading") return <div style={{minHeight:"100vh",background:"#0f1117",display:"flex",alignItems:"center",justifyContent:"center",color:"#7a859e"}}>⏳ Caricamento…</div>;
+  if(phase==="setup")   return <SetupScreen onSave={handleSetup}/>;
+  if(phase==="login")   return <LoginScreen onLogin={handleLogin} db={dbRef.current}/>;
+
+  return (
+    <div style={{minHeight:"100vh",background:"#0f1117",color:"#e8e6df"}}>
+      {/* HEADER */}
+      <header className="no-print" style={{background:"#0a0d13",borderBottom:"1px solid #1a2035",padding:"0 28px",position:"sticky",top:0,zIndex:50,overflow:"visible"}}>
+
+        {/* ── BARRA TOP ── */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:10,paddingBottom:8,borderBottom:"1px solid #141824"}}>
+
+          {/* BADGE NEON U.O. San Lorenzo */}
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{
+              position:"relative",
+              border:"1px solid #7eb8f7",
+              borderRadius:5,
+              padding:"3px 12px",
+              fontSize:10,
+              fontWeight:700,
+              letterSpacing:"0.13em",
+              textTransform:"uppercase",
+              color:"#7eb8f7",
+              textShadow:"0 0 8px #7eb8f7, 0 0 18px #3a8fd4",
+              boxShadow:"0 0 6px #7eb8f730, inset 0 0 8px #7eb8f710",
+              background:"#070c14",
+            }}>
+              U.O. San Lorenzo — Polizia Amministrativa
+            </div>
+            {/* Pallino online */}
+            <div style={{display:"flex",alignItems:"center",gap:5}}>
+              <div style={{
+                width:7,height:7,borderRadius:"50%",
+                background:"#52b788",
+                boxShadow:"0 0 6px #52b788, 0 0 12px #52b78880",
+                animation:"pulse 2s infinite",
+              }}></div>
+              <span style={{fontSize:10,color:"#52b788",letterSpacing:"0.06em",fontWeight:500}}>ONLINE</span>
+            </div>
+          </div>
+
+          {/* Controlli a destra */}
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,background:"#141824",border:"1px solid #2a3049",borderRadius:20,padding:"4px 12px 4px 6px"}}>
+              <Avatar name={operatore.nome} size={22}/>
+              <span style={{fontSize:12,color:"#e8e6df"}}>{operatore.nome}</span>
+              {operatore.matricola&&<span style={{fontSize:11,color:"#7a859e"}}>· {operatore.matricola}</span>}
+            </div>
+            {/* Bottoni desktop */}
+            <div className="desktop-only" style={{display:"flex",gap:6}}>
+              <button onClick={()=>{sessionStorage.removeItem(OP_KEY);setOperatore(null);setPhase("login");}} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:11,padding:"4px 10px",borderRadius:6,cursor:"pointer"}}>Esci</button>
+              <button onClick={correggiDate} disabled={fixingDates} style={{background:"none",border:"1px solid #2a3049",color:fixingDates?"#5a4a1e":"#7a859e",fontSize:11,padding:"4px 10px",borderRadius:6,cursor:"pointer"}} title="Correggi formato date">{fixingDates?"⏳":"🔧"}</button>
+              <button onClick={()=>setShowLog(true)} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:11,padding:"4px 10px",borderRadius:6,cursor:"pointer"}} title="Log attività">📋</button>
+              <button onClick={()=>setShowOperatori(true)} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:11,padding:"4px 10px",borderRadius:6,cursor:"pointer"}} title="Gestione accessi">🔐</button>
+              <button onClick={()=>{localStorage.removeItem(CFG_KEY);window.location.reload();}} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:11,padding:"4px 10px",borderRadius:6,cursor:"pointer"}} title="Cambia database">⚙️</button>
+            </div>
+            {/* Menu hamburger mobile */}
+            <button className="mobile-only" onClick={()=>setMenuOpen(o=>!o)}
+              style={{background:"none",border:"1px solid #2a3049",color:"#e8e6df",fontSize:18,padding:"5px 10px",borderRadius:6,cursor:"pointer",display:"none"}}>
+              ☰
+            </button>
+          </div>
+          {/* Dropdown menu mobile */}
+          {menuOpen&&(
+            <div className="mobile-only" style={{display:"none",position:"absolute",top:60,right:14,background:"#181c27",border:"1px solid #2a3049",borderRadius:10,padding:8,zIndex:200,minWidth:200,boxShadow:"0 8px 24px rgba(0,0,0,.6)"}}>
+              {[
+                {icon:"🚪",label:"Esci", action:()=>{sessionStorage.removeItem(OP_KEY);setOperatore(null);setPhase("login");setMenuOpen(false);}},
+                {icon:"🔧",label:"Correggi formato date", action:()=>{correggiDate();setMenuOpen(false);}},
+                {icon:"📋",label:"Log attività", action:()=>{setShowLog(true);setMenuOpen(false);}},
+                {icon:"🔐",label:"Gestione accessi", action:()=>{setShowOperatori(true);setMenuOpen(false);}},
+                {icon:"⚙️",label:"Cambia database", action:()=>{localStorage.removeItem(CFG_KEY);window.location.reload();}},
+              ].map(({icon,label,action})=>(
+                <button key={label} onClick={action} style={{width:"100%",background:"none",border:"none",color:"#e8e6df",fontSize:13,padding:"10px 14px",borderRadius:7,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                  <span>{icon}</span><span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── TITOLO + CHIP ── */}
+        <div style={{paddingTop:10,paddingBottom:12,display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+          <div>
+            <div style={{display:"flex",alignItems:"baseline",flexWrap:"wrap",lineHeight:1.1}}>
+              <span style={{fontSize:30,fontWeight:800,color:"#e8e6df",letterSpacing:"-0.02em"}}>Registro&nbsp;</span>
+              <span style={{fontSize:30,fontWeight:800,color:"#c9a84c",letterSpacing:"-0.02em"}}>Controlli Commerciali</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:"#c9a84c",flexShrink:0}}></div>
+              <span style={{fontSize:11,color:"#7a859e",letterSpacing:"0.05em"}}>Multi-utente · Tempo reale · {records.length} record</span>
+            </div>
+          </div>
+
+          {/* CHIP NEON FILTRO TIPO ATTIVITÀ */}
+          <div className="header-chips" style={{display:"flex",gap:12,alignItems:"center",justifyContent:"center"}}>
+            {[
+              {key:"commerciale", label:"Attività Commerciale",              icon:"🏪", match:"Attività Commerciale",              color:"#c9a84c", glow:"#c9a84c"},
+              {key:"ricettiva",   label:"Attività Ricettiva Extralberghiera", icon:"🏠", match:"Attività Ricettiva Extralberghiera", color:"#7eb8f7", glow:"#7eb8f7"},
+            ].map(({key,label,icon,match,color,glow})=>{
+              const n=records.filter(r=>r.tipoAttivita===match).length;
+              const active=filterTipo===key;
+              return (
+                <button key={key} onClick={()=>setFilterTipo(active?"":key)} style={{
+                  background: active?"#070c14":"#070c14",
+                  border:`1px solid ${active?color:color+"50"}`,
+                  borderRadius:5,
+                  padding:"5px 16px",
+                  cursor:"pointer",
+                  transition:"all .25s",
+                  display:"flex", alignItems:"center", gap:8,
+                  boxShadow: active?`0 0 8px ${glow}50, 0 0 18px ${glow}30, inset 0 0 10px ${glow}15`:"none",
+                }}>
+                  <span style={{fontSize:14}}>{icon}</span>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1}}>
+                    <span style={{
+                      fontSize:10, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase",
+                      color: active?color:color+"80",
+                      textShadow: active?`0 0 8px ${glow}, 0 0 18px ${glow}90`:"none",
+                      lineHeight:1.2,
+                    }}>{label}</span>
+                    <span style={{
+                      fontSize:13, fontWeight:800,
+                      color: active?color:color+"70",
+                      textShadow: active?`0 0 10px ${glow}`:"none",
+                      lineHeight:1,
+                    }}>{n} {n===1?"record":"record"}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes pulse {
+            0%,100%{opacity:1;transform:scale(1)}
+            50%{opacity:.6;transform:scale(1.3)}
+          }
+        `}</style>
+      </header>
+
+      {/* STATS */}
+      <div className="no-print stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,padding:"20px 24px"}}>
+        {[{label:"Controlli totali",value:records.length,sub:"nel database",color:"#c9a84c"},{label:"Ultimo mese",value:ultimoMese,sub:"recenti",color:"#7eb8f7"},{label:"Violazioni",value:totViol,sub:"infrazioni",color:"#e05252"},{label:"Denunce",value:denunce,sub:"provvedimenti",color:"#52b788"}].map(s=>(
+          <div key={s.label} style={{background:"#1e2334",border:"1px solid #2a3049",borderRadius:10,padding:"14px 18px"}}>
+            <div style={{fontSize:10,color:"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4}}>{s.label}</div>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:30,fontWeight:700,lineHeight:1,color:s.color}}>{loading?"…":s.value}</div>
+            <div style={{fontSize:11,color:"#7a859e",marginTop:4}}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* TAB + TOOLBAR */}
+      <div className="no-print toolbar-wrap" style={{padding:"0 24px 14px",display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",background:"#1e2334",borderRadius:8,padding:3,gap:2}}>
+          {[["lista","📋 Lista"],["schede","🏪 Schede esercizi"],["stats","📊 Statistiche"],["reportra","📄 Report RA"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setView(v)} style={{background:view===v?"#c9a84c":"none",color:view===v?"#0f1117":"#7a859e",border:"none",borderRadius:6,padding:"6px 14px",fontSize:13,fontWeight:view===v?600:400,cursor:"pointer",whiteSpace:"nowrap"}}>{l}</button>
+          ))}
+        </div>
+        {view==="lista"&&<>
+          <div style={{flex:1,minWidth:180,position:"relative"}}>
+            <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"#7a859e",pointerEvents:"none"}}>🔍</span>
+            <input placeholder="Cerca…" value={search} onChange={e=>setSearch(e.target.value)} style={{...INP,padding:"8px 12px 8px 34px",borderRadius:8}}/>
+          </div>
+          <select value={filterProv} onChange={e=>setFilterProv(e.target.value)} style={{...INP,width:"auto",cursor:"pointer",borderRadius:8,padding:"8px 12px"}}>
+            <option value="">Tutti i provvedimenti</option>
+            {PROVVEDIMENTI.map(p=><option key={p}>{p}</option>)}
+          </select>
+          {records.length>0&&<button onClick={()=>{exportCSV(records);logAzione("export_csv",`Esportati ${records.length} record in CSV`);}} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:12,padding:"8px 12px",borderRadius:8,cursor:"pointer",whiteSpace:"nowrap"}}>⬇ CSV</button>}
+        </>}
+        <div className="toolbar-main-btns" style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={()=>setShowImport(true)} style={{background:"none",border:"1px solid #52b788",color:"#52b788",fontSize:13,fontWeight:600,padding:"8px 16px",borderRadius:8,cursor:"pointer",whiteSpace:"nowrap"}}>⬆ Importa Excel</button>
+          <button onClick={()=>setShowAdd(true)} style={{background:"#c9a84c",color:"#0f1117",fontSize:13,fontWeight:600,padding:"8px 18px",border:"none",borderRadius:8,cursor:"pointer",whiteSpace:"nowrap"}}>+ Nuovo controllo</button>
+        </div>
+      </div>
+
+      {/* TAG FILTER BAR */}
+      {view==="lista"&&records.length>0&&(
+        <div className="no-print tag-bar" style={{padding:"0 24px 12px",overflowX:"auto"}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            <span style={{fontSize:11,color:"#7a859e",flexShrink:0,marginRight:2}}>Filtra per categoria:</span>
+            <button onClick={()=>setFilterTag("")}
+              style={{background:filterTag===""?"#c9a84c":"#1e2334",color:filterTag===""?"#0f1117":"#7a859e",border:"1px solid",borderColor:filterTag===""?"#c9a84c":"#2a3049",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",transition:"all .15s"}}>
+              Tutti ({records.length})
+            </button>
+            {CATEGORIE_TAG.map(cat=>{
+              const count=records.filter(r=>recordInCategoria(r,cat)).length;
+              if(count===0) return null;
+              const active=filterTag===cat.id;
+              return (
+                <button key={cat.id} onClick={()=>{const next=active?"":cat.id;setFilterTag(next);if(next)logAzione("ricerca_tag",`Filtro tag: ${cat.label}`);}}
+                  style={{background:active?cat.bg:"#1e2334",color:active?cat.color:"#7a859e",border:"1px solid",borderColor:active?cat.color:"#2a3049",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",transition:"all .15s"}}>
+                  {cat.label} <span style={{opacity:.8}}>({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* LISTA */}
+      {view==="lista"&&(
+        <div className="no-print lista-wrap" style={{padding:"0 24px 40px",overflowX:"auto"}}>
+          {loading?<div style={{textAlign:"center",padding:"64px",color:"#7a859e"}}>⏳ Connessione…</div>
+          :filtered.length===0?<div style={{textAlign:"center",padding:"64px 24px",color:"#7a859e"}}><div style={{fontSize:48,marginBottom:16}}>🗂</div><div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:20,color:"#e8e6df"}}>{records.length===0?"Nessun controllo registrato":"Nessun risultato"}</div><div style={{fontSize:13,marginTop:6}}>{records.length===0?'Clicca "+ Nuovo controllo" o "Importa Excel"':"Modifica i filtri"}</div></div>
+          :<>
+            {/* MOBILE CARDS */}
+            <div className="mobile-cards" style={{display:"none"}}>
+              {sortedFiltered.map(r=>(
+                <div key={r.id} onClick={()=>{setDetail(r);logAzione("consultazione",`Consultato: ${r.nomeEsercizio} — ${fmt(r.data)}`);}}
+                  style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:10,padding:"14px 16px",cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nomeEsercizio}</div>
+                      {r.tipoAttivita&&<div style={{fontSize:10,color:r.tipoAttivita.includes("Ricettiva")?"#7eb8f7":"#c9a84c",fontWeight:500,marginTop:1}}>{r.tipoAttivita.includes("Ricettiva")?"🏠":"🏪"} {r.tipoAttivita}</div>}
+                      <div style={{fontSize:12,color:"#7a859e",marginTop:2}}>{r.indirizzo}</div>
+                    </div>
+                    {r.provvedimento&&<Badge label={r.provvedimento} fg={pCol(r.provvedimento)} bg={pBg(r.provvedimento)}/>}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 14px",fontSize:12,marginBottom:8}}>
+                    <div><span style={{color:"#7a859e"}}>Data: </span><span>{fmt(r.data)}{r.ora?` ${r.ora}`:""}</span></div>
+                    <div><span style={{color:"#7a859e"}}>Titolare: </span><span>{r.titolare||"—"}</span></div>
+                    {r.numeroVerbale&&<div><span style={{color:"#7a859e"}}>Verbale: </span><span style={{color:"#c9a84c"}}>{r.numeroVerbale}</span></div>}
+                    {(()=>{
+                    const ags=Array.isArray(r.agentiOp)?r.agentiOp:(r.agentiOp?r.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(r._agenti?r._agenti.split(",").map(s=>s.trim()).filter(Boolean):[]));
+                    if(!ags.length) return <div><span style={{color:"#7a859e"}}>Agenti: </span><span style={{fontSize:11}}>{r.creatoDA||"—"}</span></div>;
+                    return <div style={{gridColumn:"1/-1",display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}><span style={{color:"#7a859e",fontSize:11}}>Agenti:</span>{ags.map((a,i)=><span key={i} style={{background:hCol(a)+"30",color:hCol(a),border:`1px solid ${hCol(a)}60`,fontSize:10,padding:"2px 7px",borderRadius:999,fontWeight:600}}>{a}</span>)}</div>;
+                  })()}
+                  </div>
+                  {r.violazioniRiscontrate?.length>0&&(
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>
+                      {r.violazioniRiscontrate.map((v,i)=>{ const c=violColor(v); return <span key={i} style={{background:c.bg,color:c.fg,fontSize:10,padding:"2px 7px",borderRadius:999}}>{v}</span>; })}
+                    </div>
+                  )}
+                  <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:10,paddingTop:8,borderTop:"1px solid #2a3049"}}>
+                    <button onClick={e=>{e.stopPropagation();setEditing(r);}} style={{background:"none",border:"1px solid #2a3049",color:"#c9a84c",fontSize:12,padding:"5px 12px",borderRadius:6,cursor:"pointer"}}>✏️ Modifica</button>
+                    <button onClick={e=>{e.stopPropagation();setConfirm(r.id);}} style={{background:"none",border:"1px solid #5a1a1a",color:"#e05252",fontSize:12,padding:"5px 12px",borderRadius:6,cursor:"pointer"}}>🗑</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP TABLE */}
+            <table className="desktop-table" style={{width:"100%",borderCollapse:"collapse",minWidth:820}}>
+            <thead><tr style={{borderBottom:"2px solid #2a3049"}}>
+              {[
+                {label:"Data",         col:"data"},
+                {label:"Tipologia",    col:"tipo_att"},
+                {label:"Esercizio",    col:"nome"},
+                {label:"Legale Rapp.", col:"titolare"},
+                {label:"Motivo",       col:null},
+                {label:"Violazioni",   col:"violazioni"},
+                {label:"Provvedimento",col:"provvedimento"},
+                {label:"Agenti/Op.",   col:null},
+                {label:"",             col:null},
+              ].map(({label,col},i)=>(
+                <th key={i} onClick={col?()=>toggleSort(col):undefined}
+                  style={{fontSize:11,fontWeight:500,color:sortBy===col?"#c9a84c":"#7a859e",letterSpacing:"0.07em",textTransform:"uppercase",padding:"8px 10px",textAlign:"left",cursor:col?"pointer":"default",userSelect:"none",whiteSpace:"nowrap"}}>
+                  {label}{col&&<SortIcon col={col}/>}
+                </th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {sortedFiltered.map(r=>(
+                <tr key={r.id} style={{borderBottom:"1px solid #2a3049",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="#1e2334"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <td onClick={()=>{setDetail(r);logAzione("consultazione",`Consultato: ${r.nomeEsercizio} — ${fmt(r.data)}`);}} style={{padding:"10px",fontSize:12,color:"#7a859e",whiteSpace:"nowrap"}}>{fmt(r.data)}</td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px"}}>
+                    {r.tipoAttivita
+                      ?<span style={{
+                          background:r.tipoAttivita.includes("Ricettiva")?"#1a2640":"#3a2e0e",
+                          color:r.tipoAttivita.includes("Ricettiva")?"#7eb8f7":"#c9a84c",
+                          border:`1px solid ${r.tipoAttivita.includes("Ricettiva")?"#7eb8f760":"#c9a84c60"}`,
+                          fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:4,
+                          textShadow:r.tipoAttivita.includes("Ricettiva")?"0 0 6px #7eb8f780":"0 0 6px #c9a84c80",
+                          whiteSpace:"nowrap"
+                        }}>
+                          {r.tipoAttivita.includes("Ricettiva")?"🏠 Ricettiva":"🏪 Commerciale"}
+                        </span>
+                      :<span style={{color:"#7a859e",fontSize:11}}>—</span>}
+                  </td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px",fontSize:14,fontWeight:600}}>{r.nomeEsercizio}{r.tipo&&<div style={{fontSize:11,color:"#7a859e",fontWeight:400}}>{r.tipo}</div>}</td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px",fontSize:13,color:"#7a859e"}}>{r.legaleRappresentante||r.titolare||"—"}</td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px",maxWidth:180}}>
+                    {r.motivoControllo?.length
+                      ? <div style={{display:"flex",flexWrap:"wrap",gap:3}}>{r.motivoControllo.map((m,i)=><span key={i} style={{background:"#252d42",color:"#c9a84c",fontSize:10,padding:"2px 7px",borderRadius:999,whiteSpace:"nowrap"}}>{m}</span>)}</div>
+                      : <span style={{fontSize:11,color:"#7a859e"}}>—</span>}
+                  </td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px",maxWidth:220}}>
+                    {r.violazioniRiscontrate?.length
+                      ? <div style={{display:"flex",flexWrap:"wrap",gap:3}}>{r.violazioniRiscontrate.map((v,i)=>{ const c=violColor(v); return <span key={i} style={{background:c.bg,color:c.fg,fontSize:10,padding:"2px 7px",borderRadius:999,whiteSpace:"nowrap"}}>{v}</span>; })}</div>
+                      : <Badge label="Nessuna" fg="#52b788" bg="#1a3d2e"/>}
+                  </td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px"}}>{(()=>{ const provs=r.provvedimenti?.length>0?r.provvedimenti.filter(p=>p.tipo||p):(r.provvedimento?[r.provvedimento]:[]); if(!provs.length) return <Badge label="—" fg="#7a859e" bg="#252d42"/>; return <div style={{display:"flex",flexWrap:"wrap",gap:3}}>{provs.map((p,i)=>{ const t=typeof p==="string"?p:p.tipo; return t?<Badge key={i} label={t} fg={pCol(t)} bg={pBg(t)}/>:null; })}</div>; })()}</td>
+                  <td onClick={()=>setDetail(r)} style={{padding:"10px",maxWidth:200}}>
+                    {(()=>{
+                      const ags=Array.isArray(r.agentiOp)?r.agentiOp:(r.agentiOp?r.agentiOp.split(",").map(s=>s.trim()).filter(Boolean):(r._agenti?r._agenti.split(",").map(s=>s.trim()).filter(Boolean):[]));
+                      if(!ags.length) return <span style={{fontSize:12,color:"#7a859e"}}>{r.creatoDA||"—"}</span>;
+                      return <div style={{display:"flex",flexWrap:"wrap",gap:3}}>{ags.map((a,i)=>(
+                        <span key={i} style={{background:hCol(a)+"30",color:hCol(a),border:`1px solid ${hCol(a)}60`,fontSize:10,padding:"2px 7px",borderRadius:999,fontWeight:600,whiteSpace:"nowrap"}}>{a}</span>
+                      ))}</div>;
+                    })()}
+                  </td>
+                  <td style={{padding:"10px",whiteSpace:"nowrap"}}>
+                    <button onClick={()=>setEditing(r)} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:15,marginRight:4}}>✏️</button>
+                    <button onClick={()=>setConfirm(r.id)} style={{background:"none",border:"none",color:"#7a859e",cursor:"pointer",fontSize:15}}>🗑</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table></>}
+        </div>
+      )}
+
+      {/* SCHEDE */}
+      {view==="schede"&&(
+        <div className="no-print" style={{padding:"0"}}>  
+          {gruppiList.length===0?<div style={{textAlign:"center",padding:"64px 24px",color:"#7a859e"}}><div style={{fontSize:48,marginBottom:16}}>🏪</div><div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:20,color:"#e8e6df"}}>Nessun esercizio registrato</div></div>
+          :<div className="schede-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14,padding:"0 24px 40px"}}>
+            {gruppiList.map(g=>{
+              const totV=g.interventi.reduce((s,r)=>s+(r.motivoControllo?.length||0),0);
+              const provSet=[...new Set(g.interventi.map(r=>r.provvedimento).filter(Boolean))];
+              return (
+                <div key={g.nomeEsercizio} style={{background:"#181c27",border:"1px solid #2a3049",borderRadius:12,padding:18}} onMouseEnter={e=>e.currentTarget.style.borderColor="#c9a84c50"} onMouseLeave={e=>e.currentTarget.style.borderColor="#2a3049"}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.nomeEsercizio}</div><div style={{fontSize:12,color:"#7a859e",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.indirizzo}</div></div>
+                    <div style={{background:"#c9a84c",color:"#0f1117",borderRadius:20,padding:"2px 10px",fontSize:12,fontWeight:700,flexShrink:0,marginLeft:8}}>{g.interventi.length} int.</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 12px",marginBottom:12,fontSize:12}}>
+                    <div><span style={{color:"#7a859e"}}>Titolare: </span><span>{g.titolare||"—"}</span></div>
+                    <div><span style={{color:"#7a859e"}}>Tipo: </span><span>{g.tipo||"—"}</span></div>
+                    <div><span style={{color:"#7a859e"}}>Violazioni: </span><span style={{color:totV>0?"#e05252":"#52b788"}}>{totV}</span></div>
+                    <div><span style={{color:"#7a859e"}}>Ultimo: </span><span>{fmt(g.interventi[0]?.data)}</span></div>
+                  </div>
+                  {provSet.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:12}}>{provSet.map((p,i)=><Badge key={i} label={p} fg={pCol(p)} bg={pBg(p)}/>)}</div>}
+                  <button onClick={()=>setScheda({esercizio:g,interventi:g.interventi})} style={{width:"100%",background:"none",border:"1px solid #c9a84c50",color:"#c9a84c",borderRadius:7,padding:"7px",fontSize:12,fontWeight:600,cursor:"pointer"}}>📋 Apri scheda · Genera PDF</button>
+                </div>
+              );
+            })}
+          </div>}
+        </div>
+      )}
+
+
+      {view==="reportra"&&(
+        <ReportRAView records={records}/>
+      )}
+
+      {view==="stats"&&(
+        <StatsView records={records} tariffario={tariffario} onOpenTariffario={()=>setShowTariffario(true)} onExportPDF={()=>{generaStatsPDF(records,tariffario);logAzione("report_pdf",`Esportato report statistico — ${records.length} record`);}}/>
+      )}
+
+      {/* FAB MOBILE — pulsante + fisso in basso */}
+      <button className="mobile-only" onClick={()=>setShowAdd(true)} style={{
+        display:"none",
+        position:"fixed", bottom:24, right:20, zIndex:90,
+        width:56, height:56, borderRadius:"50%",
+        background:"#c9a84c", color:"#0f1117",
+        fontSize:28, fontWeight:700,
+        border:"none", cursor:"pointer",
+        boxShadow:"0 4px 20px rgba(201,168,76,.5)",
+        alignItems:"center", justifyContent:"center"
+      }}>+</button>
+
+      {/* MODALI */}
+      {showLog&&<LogViewer db={dbRef.current} onClose={()=>setShowLog(false)}/>}
+      {showOperatori&&<GestioneOperatoriModal db={dbRef.current} onClose={()=>setShowOperatori(false)}/>}
+      {showTariffario&&<TariffarioModal tariffario={tariffario} onClose={()=>setShowTariffario(false)} onSave={saveTariffario}/>}
+      {(showAdd||editing)&&<AddModal initial={editing} operatore={operatore} onClose={()=>{setShowAdd(false);setEditing(null);}} onSave={handleSave}/>}
+      {showImport&&<ImportModal onClose={()=>setShowImport(false)} onImport={handleImport}/>}
+      {detail&&<DetailModal record={detail} onClose={()=>setDetail(null)} onDelete={id=>{setConfirm(id);setDetail(null);}} onEdit={r=>{setEditing(r);setDetail(null);}}/>}
+      {scheda&&<SchedaModal esercizio={scheda.esercizio} interventi={scheda.interventi} onClose={()=>setScheda(null)} onPDF={()=>logAzione("scheda_pdf",`Scheda PDF: ${scheda.esercizio.nomeEsercizio} — ${scheda.interventi.length} interventi`)}/>}
+      {confirm&&(
+        <Overlay onBgClick={()=>setConfirm(null)}>
+          <div style={{background:"#181c27",border:"1px solid #5a1a1a",borderRadius:12,padding:28,maxWidth:380,width:"100%"}}>
+            <div style={{fontFamily:"'Crimson Pro',Georgia,serif",fontSize:20,fontWeight:700,marginBottom:10}}>Conferma eliminazione</div>
+            <p style={{fontSize:14,color:"#7a859e",marginBottom:24,lineHeight:1.6}}>Sei sicuro? Il record verrà eliminato per tutti gli operatori.</p>
+            <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+              <button onClick={()=>setConfirm(null)} style={{background:"none",border:"1px solid #2a3049",color:"#7a859e",fontSize:13,padding:"7px 16px",borderRadius:7,cursor:"pointer"}}>Annulla</button>
+              <button onClick={()=>handleDelete(confirm)} style={{background:"#5a1a1a",border:"1px solid #8c2f2f",color:"#e05252",fontSize:13,fontWeight:600,padding:"7px 16px",borderRadius:7,cursor:"pointer"}}>🗑 Elimina</button>
+            </div>
+          </div>
+        </Overlay>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
